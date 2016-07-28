@@ -1,5 +1,5 @@
 #!/usr/bin/Rscript
-#Script to automate differential expression analysis using DESeq2, edgeR, DEXSeq or limma
+#Script to automate differential expression analysis using one of the following R algorithms: DESeq2, edgeR, DEXSeq or limma
 #Based on manuals, pieces of code found on the internet and helpful comments of colleagues
 ###Required input is:###
 #1) Either a matrix of counts (features*samples) with features (genes) on lines and samples on columns OR a directory of bam files to use featureCounts on
