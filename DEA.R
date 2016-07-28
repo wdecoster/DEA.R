@@ -3,7 +3,7 @@
 #Based on manuals, pieces of code found on the internet and helpful comments of colleagues
 ###Required input is:###
 #1) Either a matrix of counts (features*samples) with features (genes) on lines and samples on columns OR a directory of bam files to use featureCounts on
-#2) A sampleInfo File matching the samples containing at least the fields 'condition' and 'gender'
+#2) A sampleInfo File matching the samples containing at least the fields 'condition' and 'gender'. Reference level is 'CON'
 #3) The name of the prefered algorithm: 'deseq2', edger, dexseq or limma (case insensitive)
 ######
 
@@ -129,9 +129,10 @@ proc_dexseq <- function(countFiles, sampleInfo, batchbool) { #Takes rather long?
 	table ( dxdres$padj < 0.1 )
 	table ( tapply( dxdres$padj < 0.1, dxdres$groupID, any ) )
 	DEXSeqHTML( dxdres, FDR=0.1, color=c("#FF000080", "#0000FF80") )
+	###Requires writing to file and plotting###
 }
 
-makevolcanoplot <- function(input, proc) {
+makevolcanoplot <- function(input, proc) { #Create volcanoplot of results, with labels and colors
 	volc = ggplot(input, aes(logFC, -log10(pvalue))) + geom_point(aes(col=sig)) + scale_color_manual(values=c("black", "red")) + ggtitle(proc)
 	if (substr(input$gene[1], 1, 4) == 'ENSG'){
 		volc+geom_text_repel(data=head(input, 20), aes(label=symbol)) #If ENSG is present, the results were converted to symbol notation earlier and can use these
@@ -145,7 +146,7 @@ proc_deseq2 <- function(counts, sampleInfo, batchbool) {
 	suppressMessages(library("DESeq2"))
 	cat('\nDifferential expression analysis using DESeq2, ')
 	suppressMessages(library("BiocParallel"))
-	register(MulticoreParam(12))
+	register(MulticoreParam(4))
 	if (batchbool) {
 		deseqdata <- DESeqDataSetFromMatrix(countData=counts, colData=sampleInfo, design=~batch+gender+condition)
 		cat("with correction for batch effect.")
@@ -254,13 +255,14 @@ proc_edger <- function(counts, sampleInfo, batchbool) {
 	makevolcanoplot(mutate(output, sig=ifelse(output$FDR<0.1, "FDR<0.1", "Not Sig")), "edgeR")
 	}
 
-args <- commandArgs(trailingOnly = TRUE)
+args <- commandArgs(trailingOnly = TRUE) #Grab the command line arguments
 
-if (length(args) != 3) {
+if (length(args) != 3) { #Exact required number of arguments is 3
 	stop("\nInput Error: first argument is countfile, second argument is sample info file. Third argument is 'edger', 'deseq2', 'limma' or 'dexseq'.\n")
 } else {
-proc = whichFunction(strsplit(args, " ")[[3]][1])
+proc = whichFunction(strsplit(args, " ")[[3]][1]) #Check whether algorithm name is valid
 indata = sanityCheck(strsplit(args," ")[[1]][1], strsplit(args," ")[[2]][1], proc) #Function to validate the structure of the supplied datafiles and returned as list.
+#Silently load all packages
 suppressMessages(library("annotables"))
 suppressMessages(library("pheatmap"))
 suppressMessages(library("RColorBrewer"))
