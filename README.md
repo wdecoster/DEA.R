@@ -11,9 +11,10 @@ Command line Rscript to perform differential expression analysis using DESeq2, e
 - Creates detailed tables and lists of differentially expressed genes  
 
 ## Usage
-DEA.R <bamdir> <sampleInfoFile>  
+DEA.R <bamdir> <sampleInfoFile> <annoation.gtf>
 with:  
-bamdir:    A directory of bam files to use featureCounts on  
-sampleInfoFile:     file matching the samples in the bamdir,
-                    containing at least the fields 'file', 'sample' and condition'  
-                    with additional covariates (reference level condition == "CON")  
+- bamdir:    A directory of bam files to use featureCounts on  
+- sampleInfoFile:     file matching the samples in the bamdir,  
+containing at least the fields 'file', 'sample' and condition'  
+with additional covariates (reference level condition == "CON")  
+- annoation.gtf       An annotation file in gtf format matching the reference genome used for alignment  
