@@ -10,14 +10,19 @@
 #Author: wdecoster
 #Twitter: @wouter_decoster
 #Questions: https://www.biostars.org/t/DEA.R/
+version="0.5"
 
 sanityCheck <- function() {
 	arguments = unlist(strsplit(commandArgs(trailingOnly = TRUE)," "))
 	if (length(arguments) == 0) {usage()}
-	if (length(arguments) != 3 && ! arguments[1] %in% c("install", "citations")) { usage() }
+	if (length(arguments) != 3 && ! arguments[1] %in% c("install", "citations", "version", "--version", "-v")) { usage() }
 	inputdata <- list()
 	if (tolower(arguments[1]) == "install") { install() }
 	if (tolower(arguments[1]) == "citations") { citations() }
+	if (tolower(arguments[1]) %in% c("version", "--version", "-v")) {
+		cat(paste("\nDEA.R version", version, "\n\n", sep=" "))
+		quit()
+		}
 	library(parallel)
 	inputdata$cores <- min(detectCores() - 1, 12)
 	inputdata$annotation <- arguments[3]
@@ -42,7 +47,7 @@ giveError <- function(message){
 	quit()
 	}
 
-usage <- function(){giveError("USAGE: DEA.R <bam folder> <sample info file> <annotation.gtf>.\nOther run mode options are 'install' or 'citations'")}
+usage <- function(){giveError("USAGE: DEA.R <bam folder> <sample info file> <annotation.gtf>.\nOther run mode options are 'install', 'citations' or 'version'")}
 
 makedesign <- function(sampleInfo) {
 	covariates <- names(sampleInfo)[which(! names(sampleInfo) %in% c("file", "condition", "sample", "subcondition", "sequencing", "strandedness"))]
