@@ -21,9 +21,7 @@ sanityCheck <- function() {
 	library(parallel)
 	inputdata$cores <- min(detectCores() - 1, 12)
 	inputdata$annotation <- arguments[3]
-	if (! file.exists(inputdata$annotation)) {
-		giveError("FATAL: Could not find the annotation file, check if path is correct.")
-		}
+	if (! file.exists(inputdata$annotation)) {giveError("FATAL: Could not find the annotation file, check if path is correct.")	}
 	inputdata$sampleInfo <- checkSampleInfo(arguments[2])
 	inputdata$gender <- ifelse("gender" %in% names(inputdata$sampleInfo), TRUE, FALSE)
 	inputdata$PE <- ifelse(as.character(inputdata$sampleInfo$sequencing[1]) == "PE", TRUE, FALSE)
@@ -44,10 +42,7 @@ giveError <- function(message){
 	quit()
 	}
 
-usage <- function(){
-	cat("\n\nUSAGE: DEA.R <bam folder> <sample info file> <annotation.gtf>.\nOther run mode options are 'install' or 'citations'\n\n")
-	quit()
-	}
+usage <- function(){giveError("USAGE: DEA.R <bam folder> <sample info file> <annotation.gtf>.\nOther run mode options are 'install' or 'citations'")}
 
 makedesign <- function(sampleInfo) {
 	covariates <- names(sampleInfo)[which(! names(sampleInfo) %in% c("file", "condition", "sample", "subcondition", "sequencing", "strandedness"))]
@@ -58,32 +53,44 @@ makedesign <- function(sampleInfo) {
 checkSampleInfo <- function(sampleInfoFile) {
 	if (!file.exists(sampleInfoFile)) {giveError("ARGUMENT ERROR:\nFile provided as sample info file doesn't exist or path is incorrect.") }
 	sampleInfo <- read.table(sampleInfoFile, header=T, stringsAsFactors=F)
-
-	if (!"condition" %in% names(sampleInfo)) {giveError("SAMPLEINFO ERROR:\nCould not find required field <condition> in sample info file.")}
-	if (min(table(sampleInfo$condition)) < 3) {giveError("SAMPLEINFO ERROR:\nLess than 3 replicates in smallest group from <condition>.")}
-	if (! "CON" %in% sampleInfo$condition) {giveError("SAMPLEINFO ERROR:\n<CON> is a required value in the field <condition>")}
-	if (length(unique(sampleInfo$condition)) < 2) {giveError("SAMPLEINFO ERROR:\nfield <condition> needs at least two different values/groups.")} #Need at least two levels
-
-	if (!"sample" %in% names(sampleInfo)) {giveError("SAMPLEINFO ERROR:\nCould not find required field <sample> in sample info file.")}
-	if (anyDuplicated(sampleInfo$sample)) {giveError("SAMPLEINFO ERROR:\nValues in field <sample> in sample info file are not unique.")} #Sample names should be unique
-
-	if (!"file" %in% names(sampleInfo)) {giveError("SAMPLEINFO ERROR:\nCould not find required field <file> in sample info file.")}
-	if (anyDuplicated(sampleInfo$file)) {giveError("SAMPLEINFO ERROR:\nValues in field <file> in sample info file are not unique.")} #File names should be unique
-
-	if (!"sequencing" %in% names(sampleInfo)) {giveError("SAMPLEINFO ERROR:\nCould not find required field <sequencing> in sample info file.")}
-	if (!length(unique(sampleInfo$sequencing)) == 1) {giveError("SAMPLEINFO ERROR:\nOnly one type of sequencing (either PE or SE) is supported in field <sequencing>.")}
-	if (! unique(sampleInfo$sequencing) %in% c("PE", "SE")) {giveError("SAMPLEINFO ERROR:\nInput in field <sequencing> should be either PE or SE, and only one type supported per experiment.")}
-
-	if (!"strandedness" %in% names(sampleInfo)) {giveError("SAMPLEINFO ERROR:\nCould not find required field <strandedness> in sample info file.")}
-	if (!length(unique(sampleInfo$strandedness)) == 1) {giveError("SAMPLEINFO ERROR:\nOnly one type of strandedness (either unstranded, stranded or reverse) is supported in field <stranded>.")}
-	if (! unique(sampleInfo$strandedness) %in% c("unstranded", "stranded", "reverse")) {giveError("SAMPLEINFO ERROR:\nInput in field <strandedness> should be either unstranded, stranded or reverse, and only one type supported per experiment.")}
-
+	if (!"condition" %in% names(sampleInfo)) {
+		giveError("SAMPLEINFO ERROR:\nCould not find required field <condition> in sample info file.")}
+	if (min(table(sampleInfo$condition)) < 3) {
+		giveError("SAMPLEINFO ERROR:\nLess than 3 replicates in smallest group from <condition>.")}
+	if (! "CON" %in% sampleInfo$condition) {
+		giveError("SAMPLEINFO ERROR:\n<CON> is a required value in the field <condition>")}
+	if (length(unique(sampleInfo$condition)) < 2) {
+		giveError("SAMPLEINFO ERROR:\nfield <condition> needs at least two different values/groups.")} #Need at least two levels
+	if (!"sample" %in% names(sampleInfo)) {
+		giveError("SAMPLEINFO ERROR:\nCould not find required field <sample> in sample info file.")}
+	if (anyDuplicated(sampleInfo$sample)) {
+		giveError("SAMPLEINFO ERROR:\nValues in field <sample> in sample info file are not unique.")} #Sample names should be unique
+	if (!"file" %in% names(sampleInfo)) {
+		giveError("SAMPLEINFO ERROR:\nCould not find required field <file> in sample info file.")}
+	if (anyDuplicated(sampleInfo$file)) {
+		giveError("SAMPLEINFO ERROR:\nValues in field <file> in sample info file are not unique.")} #File names should be unique
+	if (!"sequencing" %in% names(sampleInfo)) {
+		giveError("SAMPLEINFO ERROR:\nCould not find required field <sequencing> in sample info file.")}
+	if (!length(unique(sampleInfo$sequencing)) == 1) {
+		giveError("SAMPLEINFO ERROR:\nOnly one type of sequencing (either PE or SE) is supported in field <sequencing>.")}
+	if (! unique(sampleInfo$sequencing) %in% c("PE", "SE")) {
+		giveError("SAMPLEINFO ERROR:\nInput in field <sequencing> should be either PE or SE, and only one type supported per experiment.")}
+	if (!"strandedness" %in% names(sampleInfo)) {
+		giveError("SAMPLEINFO ERROR:\nCould not find required field <strandedness> in sample info file.")}
+	if (!length(unique(sampleInfo$strandedness)) == 1) {
+		giveError("SAMPLEINFO ERROR:\nOnly one type of strandedness (either unstranded, stranded or reverse) is supported in field <stranded>.")}
+	if (! unique(sampleInfo$strandedness) %in% c("unstranded", "stranded", "reverse")) {
+		giveError("SAMPLEINFO ERROR:\nInput in field <strandedness> should be either unstranded, stranded or reverse, and only one type supported per experiment.")}
 	if ("gender" %in% names(sampleInfo)) {
-		if (! all(unique(sampleInfo$gender) %in% c("m", "f", "u"))) {giveError("SAMPLEINFO ERROR:\nOnly the values m [male], f [female] and u [unknown] are supported in field <gender>.")}
+		if (! all(unique(sampleInfo$gender) %in% c("m", "f", "u"))) {
+			giveError("SAMPLEINFO ERROR:\nOnly the values m [male], f [female] and u [unknown] are supported in field <gender>.")}
 		}
-
 	sampleInfo <- sampleInfo[order(sampleInfo$file),] #Sort the dataframe by files to match with bams later on
-	for (field in names(sampleInfo)[which(! names(sampleInfo) %in% c("file", "sample"))]) {sampleInfo[,field] <- as.factor(sampleInfo[,field])}
+	for (field in names(sampleInfo)) {
+		if (! field %in% c("file", "sample")) {
+			sampleInfo[,field] <- as.factor(sampleInfo[,field])
+			}
+		}
 	return(sampleInfo)
 	}
 
@@ -91,7 +98,8 @@ getCounts <- function(bamdir, inputdata) {
 	if (file.exists("FeatureCounts_RawCounts.RData")){
 		load("FeatureCounts_RawCounts.RData")
 		cat("Found RData countsfile, using this one without perform counting again.\n")
-		if (! all(colnames(counts) == inputdata$sampleInfo$sample)) { giveError("ERROR:\nSaved file <FeatureCounts_RawCounts.RData> doesn't match with sample info file.")}
+		if (! all(colnames(counts) == inputdata$sampleInfo$sample)) {
+			giveError("ERROR:\nSaved file <FeatureCounts_RawCounts.RData> doesn't match with sample info file.")}
 	} else {
 		if (! dir.exists(bamdir)) {giveError("ERROR: Directory provided doesn't exist or path is incorrect.") }
 		bams <- dir(
@@ -231,7 +239,7 @@ citations <- function() {
 	for (package in c("BiocParallel", "annotables", "genefilter")) {
 		cat(paste(package, "\n", sep=""))
 		}
-	q()
+	quit()
 	}
 
 proc_limma_voom <- function(inputdata) {
@@ -480,11 +488,3 @@ suppressMessages(library("genefilter"))
 
 for (func in c(proc_edger, proc_limma_voom, proc_deseq2)) {func(inputdata)}
 cat("\n\nFinished!\n\n")
-
-# for (package in c('<package1>', '<package2>')) {
-#     if (!require(package, character.only=T, quietly=T)) {
-#         install.packages(package)
-#         library(package, character.only=T)
-#     }
-# }
-#install.packages(package, repos="http://cran.us.r-project.org")
