@@ -4,6 +4,7 @@
 ###Required input is:###
 #1) A directory of bam files to use featureCounts on
 #2) A sampleInfo File matching the samples containing at least the fields 'file', 'sample' and condition' with additional covariates (reference level condition == "CON")
+#3) An annotation file in gtf format matching the reference genome used for alignment
 ######
 
 #Author: wdecoster
@@ -12,15 +13,17 @@
 
 sanityCheck <- function() {
 	arguments = unlist(strsplit(commandArgs(trailingOnly = TRUE)," "))
+	if (length(arguments) == 0) {usage()}
+	if (length(arguments) != 3 && ! arguments[1] %in% c("install", "citations")) { usage() }
 	inputdata <- list()
 	if (tolower(arguments[1]) == "install") { install() }
 	if (tolower(arguments[1]) == "citations") { citations() }
 	library(parallel)
 	inputdata$cores <- min(detectCores() - 1, 12)
-	#inputdata$annotation <- "/home/wdecoster/databases/gffEnsembl/Homo_sapiens.GRCh37.82.chr.gtf"
-	inputdata$annotation <- "/home/wdecoster/databases/Homo_sapiens/hg38/STARindex/Homo_sapiens.GRCh38.88.gtf"
-	if (! file.exists(inputdata$annotation)) { stop("FATAL: I could not find my database file (hardcoded in function 'sanityCheck').\n")}
-	if (length(arguments) != 2) { stop("\nInput Error: first argument is bam folder, second argument is sample info file.\n") }
+	inputdata$annotation <- arguments[3]
+	if (! file.exists(inputdata$annotation)) {
+		giveError("FATAL: Could not find the annotation file, check if path is correct.")
+		}
 	inputdata$sampleInfo <- checkSampleInfo(arguments[2])
 	inputdata$gender <- ifelse("gender" %in% names(inputdata$sampleInfo), TRUE, FALSE)
 	inputdata$PE <- ifelse(as.character(inputdata$sampleInfo$sequencing[1]) == "PE", TRUE, FALSE)
@@ -36,6 +39,16 @@ sanityCheck <- function() {
 	return(inputdata)
 	}
 
+giveError <- function(message){
+	cat(paste("\n\n", message, "\n\n", sep=""))
+	quit()
+	}
+
+usage <- function(){
+	cat("\n\nUSAGE: DEA.R <bam folder> <sample info file> <annotation.gtf>.\nOther run mode options are 'install' or 'citations'\n\n")
+	quit()
+	}
+
 makedesign <- function(sampleInfo) {
 	covariates <- names(sampleInfo)[which(! names(sampleInfo) %in% c("file", "condition", "sample", "subcondition", "sequencing", "strandedness"))]
 	design <- formula(paste("~", paste(c(covariates, "condition"), sep="", collapse=" + ")))
@@ -43,30 +56,30 @@ makedesign <- function(sampleInfo) {
 	}
 
 checkSampleInfo <- function(sampleInfoFile) {
-	if (!file.exists(sampleInfoFile)) {stop("\n\nARGUMENT ERROR:\nFile provided as sample info file doesn't exist or path is incorrect.") }
+	if (!file.exists(sampleInfoFile)) {giveError("ARGUMENT ERROR:\nFile provided as sample info file doesn't exist or path is incorrect.") }
 	sampleInfo <- read.table(sampleInfoFile, header=T, stringsAsFactors=F)
 
-	if (!"condition" %in% names(sampleInfo)) {stop('\n\nSAMPLEINFO ERROR:\nCould not find required field <condition> in sample info file.')}
-	if (min(table(sampleInfo$condition)) < 3) {stop('\n\nSAMPLEINFO ERROR:\nLess than 3 replicates in smallest group from <condition>.')}
-	if (! "CON" %in% sampleInfo$condition) {stop('\n\nSAMPLEINFO ERROR:\n<CON> is a required value in the field <condition>')}
-	if (length(unique(sampleInfo$condition)) < 2) {stop('\n\nSAMPLEINFO ERROR:\nfield <condition> needs at least two different values/groups.')} #Need at least two levels
+	if (!"condition" %in% names(sampleInfo)) {giveError("SAMPLEINFO ERROR:\nCould not find required field <condition> in sample info file.")}
+	if (min(table(sampleInfo$condition)) < 3) {giveError("SAMPLEINFO ERROR:\nLess than 3 replicates in smallest group from <condition>.")}
+	if (! "CON" %in% sampleInfo$condition) {giveError("SAMPLEINFO ERROR:\n<CON> is a required value in the field <condition>")}
+	if (length(unique(sampleInfo$condition)) < 2) {giveError("SAMPLEINFO ERROR:\nfield <condition> needs at least two different values/groups.")} #Need at least two levels
 
-	if (!"sample" %in% names(sampleInfo)) {stop('\n\nSAMPLEINFO ERROR:\nCould not find required field <sample> in sample info file.')}
-	if (anyDuplicated(sampleInfo$sample)) {stop('\n\nSAMPLEINFO ERROR:\nValues in field <sample> in sample info file are not unique.')} #Sample names should be unique
+	if (!"sample" %in% names(sampleInfo)) {giveError("SAMPLEINFO ERROR:\nCould not find required field <sample> in sample info file.")}
+	if (anyDuplicated(sampleInfo$sample)) {giveError("SAMPLEINFO ERROR:\nValues in field <sample> in sample info file are not unique.")} #Sample names should be unique
 
-	if (!"file" %in% names(sampleInfo)) {stop('\n\nSAMPLEINFO ERROR:\nCould not find required field <file> in sample info file.')}
-	if (anyDuplicated(sampleInfo$file)) {stop('\n\nSAMPLEINFO ERROR:\nValues in field <file> in sample info file are not unique.')} #File names should be unique
+	if (!"file" %in% names(sampleInfo)) {giveError("SAMPLEINFO ERROR:\nCould not find required field <file> in sample info file.")}
+	if (anyDuplicated(sampleInfo$file)) {giveError("SAMPLEINFO ERROR:\nValues in field <file> in sample info file are not unique.")} #File names should be unique
 
-	if (!"sequencing" %in% names(sampleInfo)) {stop('\n\nSAMPLEINFO ERROR:\nCould not find required field <sequencing> in sample info file.')}
-	if (!length(unique(sampleInfo$sequencing)) == 1) {stop('\n\nSAMPLEINFO ERROR:\nOnly one type of sequencing (either PE or SE) is supported in field <sequencing>.')}
-	if (! unique(sampleInfo$sequencing) %in% c("PE", "SE")) {stop('\n\nSAMPLEINFO ERROR:\nInput in field <sequencing> should be either PE or SE, and only one type supported per experiment.')}
+	if (!"sequencing" %in% names(sampleInfo)) {giveError("SAMPLEINFO ERROR:\nCould not find required field <sequencing> in sample info file.")}
+	if (!length(unique(sampleInfo$sequencing)) == 1) {giveError("SAMPLEINFO ERROR:\nOnly one type of sequencing (either PE or SE) is supported in field <sequencing>.")}
+	if (! unique(sampleInfo$sequencing) %in% c("PE", "SE")) {giveError("SAMPLEINFO ERROR:\nInput in field <sequencing> should be either PE or SE, and only one type supported per experiment.")}
 
-	if (!"strandedness" %in% names(sampleInfo)) {stop('\n\nSAMPLEINFO ERROR:\nCould not find required field <strandedness> in sample info file.')}
-	if (!length(unique(sampleInfo$strandedness)) == 1) {stop('\n\nSAMPLEINFO ERROR:\nOnly one type of strandedness (either unstranded, stranded or reverse) is supported in field <stranded>.')}
-	if (! unique(sampleInfo$strandedness) %in% c("unstranded", "stranded", "reverse")) {stop('\n\nSAMPLEINFO ERROR:\nInput in field <strandedness> should be either unstranded, stranded or reverse, and only one type supported per experiment.')}
+	if (!"strandedness" %in% names(sampleInfo)) {giveError("SAMPLEINFO ERROR:\nCould not find required field <strandedness> in sample info file.")}
+	if (!length(unique(sampleInfo$strandedness)) == 1) {giveError("SAMPLEINFO ERROR:\nOnly one type of strandedness (either unstranded, stranded or reverse) is supported in field <stranded>.")}
+	if (! unique(sampleInfo$strandedness) %in% c("unstranded", "stranded", "reverse")) {giveError("SAMPLEINFO ERROR:\nInput in field <strandedness> should be either unstranded, stranded or reverse, and only one type supported per experiment.")}
 
 	if ("gender" %in% names(sampleInfo)) {
-		if (! all(unique(sampleInfo$gender) %in% c("m", "f", "u"))) {stop('\n\nSAMPLEINFO ERROR:\nOnly the values m [male], f [female] and u [unknown] are supported in field <gender>.')}
+		if (! all(unique(sampleInfo$gender) %in% c("m", "f", "u"))) {giveError("SAMPLEINFO ERROR:\nOnly the values m [male], f [female] and u [unknown] are supported in field <gender>.")}
 		}
 
 	sampleInfo <- sampleInfo[order(sampleInfo$file),] #Sort the dataframe by files to match with bams later on
@@ -78,17 +91,17 @@ getCounts <- function(bamdir, inputdata) {
 	if (file.exists("FeatureCounts_RawCounts.RData")){
 		load("FeatureCounts_RawCounts.RData")
 		cat("Found RData countsfile, using this one without perform counting again.\n")
-		if (! all(colnames(counts) == inputdata$sampleInfo$sample)) { stop("\n\nERROR:\nSaved file <FeatureCounts_RawCounts.RData> doesn't match with sample info file.")}
+		if (! all(colnames(counts) == inputdata$sampleInfo$sample)) { giveError("ERROR:\nSaved file <FeatureCounts_RawCounts.RData> doesn't match with sample info file.")}
 	} else {
-		if (! dir.exists(bamdir)) {stop("\n\nERROR: Directory provided doesn't exist or path is incorrect.") }
+		if (! dir.exists(bamdir)) {giveError("ERROR: Directory provided doesn't exist or path is incorrect.") }
 		bams <- dir(
 			path = gsub("/$", "", bamdir),
 			pattern ='.bam$',
 			full.names=TRUE)
 		if (! length(bams) == length(inputdata$sampleInfo$sample)) {
-			stop('\n\nERROR: Mismatch between number of samples in bam directory [', length(bams), '] and samples in sample info file [', length(inputdata$sampleInfo$sample),']\n') }
+			giveError("ERROR: Mismatch between number of samples in bam directory [', length(bams), '] and samples in sample info file [', length(inputdata$sampleInfo$sample),']") }
 		if (!all(basename(bams) == inputdata$sampleInfo$file)) {
-			stop("\n\n Incorrect filename in field <file> in sample info file.\n Corresponding bam file not found: ", inputdata$sampleInfo$file[which(!basename(bams) == inputdata$sampleInfo$file)], '\n' )}
+			giveError("Incorrect filename in field <file> in sample info file.\n Corresponding bam file not found: ", inputdata$sampleInfo$file[which(!basename(bams) == inputdata$sampleInfo$file)])}
 		cat("Performing counting with featureCounts from Rsubread.\n")
 		suppressMessages(library(Rsubread))
 		capture.output(
