@@ -18,14 +18,16 @@ with:
 
 ## Structure sample info file
 The sample info file contains all information required for the script.  
-The following fields are mandatory:  
+#### Mandatory fields
+These fields are mandatory present in the file, header is case sensitive
 - 'file': exact path to bamfile to be used for counting  
 - 'sample': identifier of the sample to be used  
 - 'condition': main factor on which the differential expression should be performed.   
-The reference level for the field condition should be "CON"  
+The reference level for the field condition should be "CON" (case sensitive)  
 - 'sequencing': containing mode of sequencing: either PE or SE  
 - 'strandedness' type of strandedness of data: either unstranded, stranded or reverse  
-Optional covariate:  
+#### Optional field
 - 'gender': with possible values "m", "f" and "u"  
-Additional covariates can be specified in the sample info file, e.g.:  
+#### Additional covariates
+can be specified in the sample info file, e.g.:  
 - 'library_prep_by': Bob, Alice  
