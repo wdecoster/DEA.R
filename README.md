@@ -11,7 +11,7 @@ Command line Rscript to perform differential expression analysis using DESeq2, e
 - Creates detailed tables and lists of differentially expressed genes  
 
 ## Usage
-DEA.R <sampleInfoFile> <annotation.gtf>
+DEA.R [sampleInfoFile] [annotation.gtf]
 with:  
 - sampleInfoFile:     file specifying samples and covariates (see further)
 - annotation.gtf      An annotation file in gtf format matching the reference genome used for alignment  
@@ -19,13 +19,13 @@ with:
 ## Structure sample info file
 The sample info file contains all information required for the script.  
 The following fields are mandatory:  
-- 'file': exact path to bamfile to be used for counting
-- 'sample': identifier of the sample to be used
+- 'file': exact path to bamfile to be used for counting  
+- 'sample': identifier of the sample to be used  
 - 'condition': main factor on which the differential expression should be performed.   
-The reference level for the field condition should be "CON"
+The reference level for the field condition should be "CON"  
 - 'sequencing': containing mode of sequencing: either PE or SE  
-- 'strandedness' type of strandedness of data: either unstranded, stranded or reverse
+- 'strandedness' type of strandedness of data: either unstranded, stranded or reverse  
 Optional covariate:  
 - 'gender': with possible values "m", "f" and "u"
-Additional covariates can be specified in the sample info file, e.g.:
-- 'library_prep_by': Bob, Alice
+Additional covariates can be specified in the sample info file, e.g.:  
+- 'library_prep_by': Bob, Alice  
