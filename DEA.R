@@ -2,20 +2,19 @@
 #Script to automate differential expression analysis using the following R algorithms: DESeq2, edgeR and limma
 #Based on manuals, pieces of code found on the internet and helpful comments of colleagues
 ###Required input is:###
-#1) A directory of bam files to use featureCounts on
-#2) A sampleInfo File matching the samples containing at least the fields 'file', 'sample' and condition' with additional covariates (reference level condition == "CON")
-#3) An annotation file in gtf format matching the reference genome used for alignment
+#1) A sampleInfo File matching the samples containing at least the fields 'file', 'sample' and condition' with additional covariates (reference level condition == "CON")
+#2) An annotation file in gtf format matching the reference genome used for alignment
 ######
 
 #Author: wdecoster
 #Twitter: @wouter_decoster
 #Questions: https://www.biostars.org/t/DEA.R/
-version="0.5"
+version="0.6"
 
 sanityCheck <- function() {
 	arguments = unlist(strsplit(commandArgs(trailingOnly = TRUE)," "))
 	if (length(arguments) == 0) {usage()}
-	if (length(arguments) != 3 && ! arguments[1] %in% c("install", "citations", "version", "--version", "-v")) { usage() }
+	if (length(arguments) != 2 && ! arguments[1] %in% c("install", "citations", "version", "--version", "-v")) { usage() }
 	inputdata <- list()
 	if (tolower(arguments[1]) == "install") { install() }
 	if (tolower(arguments[1]) == "citations") { citations() }
@@ -25,9 +24,9 @@ sanityCheck <- function() {
 		}
 	library(parallel)
 	inputdata$cores <- min(detectCores() - 1, 12)
-	inputdata$annotation <- arguments[3]
+	inputdata$annotation <- arguments[2]
 	if (! file.exists(inputdata$annotation)) {giveError("FATAL: Could not find the annotation file, check if path is correct.")	}
-	inputdata$sampleInfo <- checkSampleInfo(arguments[2])
+	inputdata$sampleInfo <- checkSampleInfo(arguments[1])
 	inputdata$gender <- ifelse("gender" %in% names(inputdata$sampleInfo), TRUE, FALSE)
 	inputdata$PE <- ifelse(as.character(inputdata$sampleInfo$sequencing[1]) == "PE", TRUE, FALSE)
 	inputdata$strand <- switch(
@@ -36,9 +35,7 @@ sanityCheck <- function() {
 		'stranded' = 1,
 		'reverse' = 2)
 	inputdata$design = makedesign(inputdata$sampleInfo)
-	inputdata$counts <- getCounts(
-		bamdir=arguments[[1]],
-		inputdata=inputdata)
+	inputdata$counts <- getCounts(inputdata=inputdata)
 	return(inputdata)
 	}
 
@@ -47,7 +44,7 @@ giveError <- function(message){
 	quit()
 	}
 
-usage <- function(){giveError("USAGE: DEA.R <bam folder> <sample info file> <annotation.gtf>.\nOther run mode options are 'install', 'citations' or 'version'")}
+usage <- function(){giveError("USAGE: DEA.R <sample info file> <annotation.gtf>.\nOther run mode options are 'install', 'citations' or 'version'")}
 
 makedesign <- function(sampleInfo) {
 	covariates <- names(sampleInfo)[which(! names(sampleInfo) %in% c("file", "condition", "sample", "subcondition", "sequencing", "strandedness"))]
@@ -74,6 +71,8 @@ checkSampleInfo <- function(sampleInfoFile) {
 		giveError("SAMPLEINFO ERROR:\nCould not find required field <file> in sample info file.")}
 	if (anyDuplicated(sampleInfo$file)) {
 		giveError("SAMPLEINFO ERROR:\nValues in field <file> in sample info file are not unique.")} #File names should be unique
+	for (path in sampleInfo$file) {
+		if (! file.exists(path)) {giveError(paste("Incorrect path to", path, "\nFile not found."))}}
 	if (!"sequencing" %in% names(sampleInfo)) {
 		giveError("SAMPLEINFO ERROR:\nCould not find required field <sequencing> in sample info file.")}
 	if (!length(unique(sampleInfo$sequencing)) == 1) {
@@ -99,22 +98,16 @@ checkSampleInfo <- function(sampleInfoFile) {
 	return(sampleInfo)
 	}
 
-getCounts <- function(bamdir, inputdata) {
+getCounts <- function(inputdata) {
 	if (file.exists("FeatureCounts_RawCounts.RData")){
 		load("FeatureCounts_RawCounts.RData")
 		cat("Found RData countsfile, using this one without perform counting again.\n")
 		if (! all(colnames(counts) == inputdata$sampleInfo$sample)) {
 			giveError("ERROR:\nSaved file <FeatureCounts_RawCounts.RData> doesn't match with sample info file.")}
 	} else {
-		if (! dir.exists(bamdir)) {giveError("ERROR: Directory provided doesn't exist or path is incorrect.") }
-		bams <- dir(
-			path = gsub("/$", "", bamdir),
-			pattern ='.bam$',
-			full.names=TRUE)
+		bams <- inputdata$sampleInfo$file
 		if (! length(bams) == length(inputdata$sampleInfo$sample)) {
 			giveError("ERROR: Mismatch between number of samples in bam directory [', length(bams), '] and samples in sample info file [', length(inputdata$sampleInfo$sample),']") }
-		if (!all(basename(bams) == inputdata$sampleInfo$file)) {
-			giveError("Incorrect filename in field <file> in sample info file.\n Corresponding bam file not found: ", inputdata$sampleInfo$file[which(!basename(bams) == inputdata$sampleInfo$file)])}
 		cat("Performing counting with featureCounts from Rsubread.\n")
 		suppressMessages(library(Rsubread))
 		capture.output(
