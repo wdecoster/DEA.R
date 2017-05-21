@@ -1,0 +1,17 @@
+file	sample	condition	gender	sequencing	strandedness
+/path/to/my/directory/bam01	ID01	CON	f	SE	stranded
+/path/to/my/directory/bam02	ID02	TRT	f	SE	stranded
+/path/to/my/directory/bam03	ID03	CON	m	SE	stranded
+/path/to/my/directory/bam04	ID04	TRT	m	SE	stranded
+/path/to/my/directory/bam05	ID05	CON	m	SE	stranded
+/path/to/my/directory/bam06	ID06	CON	m	SE	stranded
+/path/to/my/directory/bam07	ID07	CON	f	SE	stranded
+/path/to/my/directory/bam08	ID08	TRT	f	SE	stranded
+/path/to/my/directory/bam09	ID09	CON	m	SE	stranded
+/path/to/my/directory/bam10	ID10	CON	m	SE	stranded
+/path/to/my/directory/bam11	ID11	TRT	f	SE	stranded
+/path/to/my/directory/bam12	ID12	TRT	f	SE	stranded
+/path/to/my/directory/bam13	ID13	TRT	m	SE	stranded
+/path/to/my/directory/bam14	ID14	CON	m	SE	stranded
+/path/to/my/directory/bam15	ID15	CON	f	SE	stranded
+/path/to/my/directory/bam16	ID16	TRT	f	SE	stranded
