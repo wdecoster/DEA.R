@@ -9,7 +9,7 @@
 #Author: wdecoster
 #Twitter: @wouter_decoster
 #Questions: https://www.biostars.org/t/DEA.R/
-version="0.6"
+version="0.6.1"
 
 sanityCheck <- function() {
 	arguments = unlist(strsplit(commandArgs(trailingOnly = TRUE)," "))
@@ -89,7 +89,6 @@ checkSampleInfo <- function(sampleInfoFile) {
 		if (! all(unique(sampleInfo$gender) %in% c("m", "f", "u"))) {
 			giveError("SAMPLEINFO ERROR:\nOnly the values m [male], f [female] and u [unknown] are supported in field <gender>.")}
 		}
-	sampleInfo <- sampleInfo[order(sampleInfo$file),] #Sort the dataframe by files to match with bams later on
 	for (field in names(sampleInfo)) {
 		if (! field %in% c("file", "sample")) {
 			sampleInfo[,field] <- as.factor(sampleInfo[,field])
@@ -244,9 +243,19 @@ proc_limma_voom <- function(inputdata) {
 	design <- model.matrix(inputdata$design, data=inputdata$sampleInfo)
 	dge <- calcNormFactors(DGEList(counts=inputdata$counts))
 	vwts <- voomWithQualityWeights(dge, design=design, normalization="none") #For outliers, use sample quality weights
+	normalizedCounts <- ens2symbol(
+		dearesult=vwts$E,
+		columnsOfInterest=c("gene", colnames(vwts$E), "symbol"),
+		colnames=c("gene", colnames(vwts$E), "symbol"))
 	write.table(
-		x=as.data.frame(data.frame(feature=rownames(vwts$E), vwts$E)),
+		x=normalizedCounts,
 		file="Limma-voom_normalizedcounts.txt",
+		sep="\t",
+		row.names=FALSE,
+		quote=FALSE)
+	write.table(
+		x=normalizedCounts[,c("gene", "symbol")],
+		file="Limma-voom_consideredgenes.txt",
 		sep="\t",
 		row.names=FALSE,
 		quote=FALSE)
@@ -267,13 +276,14 @@ proc_limma_voom <- function(inputdata) {
 		row.names=FALSE,
 		quote=FALSE)
 	write.table(
-		x=as.data.frame(DEG$symbol),
+		x=as.data.frame(DEG[,c("gene", "symbol")]),
 		file="Limma-voom_DEG.txt",
 		sep="\t",
 		col.names=FALSE,
 		row.names=FALSE,
 		quote=FALSE)
 	}
+
 
 proc_deseq2 <- function(inputdata) {
 	register(MulticoreParam(inputdata$cores))
@@ -289,6 +299,7 @@ proc_deseq2 <- function(inputdata) {
 	for (group in contrasts[contrasts != "CON"]) { getDESeqDEAbyContrast(dds, group) }
 	}
 
+
 exploratoryDataAnalysisDESeq <- function(dds) {
 	jpeg('DESeq2_MAplot.jpeg', width=8, height=8, units="in", res=500)
 	DESeq2::plotMA(dds, main="DESeq2", ylim=c(-2,2))
@@ -303,8 +314,12 @@ exploratoryDataAnalysisDESeq <- function(dds) {
 	dev.off()
 	rld <- rlogTransformation(dds, blind=FALSE)
 	normcounts = assay(rld)
-	rlddf <- data.frame(names(dds), normcounts)
-	colnames(rlddf) <- c("feature", colnames(inputdata$counts))
+	rlddf <- data.frame(normcounts)
+	rownames(rlddf) <- names(dds)
+	rlddf <- ens2symbol(
+		dearesult=rlddf,
+		columnsOfInterest=c("gene", colnames(inputdata$counts), "symbol"),
+		colnames=c("gene", colnames(inputdata$counts), "symbol"))
 	makeHeatMap(normcounts, "DESeq2", paste(rld$condition, rld$sampleR, sep="-"))
 	#makePCA(normcounts, "DESeq2")
 	write.table(
@@ -313,7 +328,13 @@ exploratoryDataAnalysisDESeq <- function(dds) {
 		sep="\t",
 		row.names=FALSE,
 		quote=FALSE)
+	write.table(
+		x=rlddf[,c("gene", "symbol")],
+		file="DESeq2_genesconsidered.txt",
+		row.names=FALSE,
+		quote=FALSE)
 	}
+
 
 getDESeqDEAbyContrast <- function(dds, group) {
 	name = paste("CONvs", group, sep="")
@@ -331,7 +352,7 @@ getDESeqDEAbyContrast <- function(dds, group) {
 		row.names=FALSE,
 		quote=FALSE)
 	write.table(
-		x=as.data.frame(subset(output, padj < 0.1)$symbol),
+		x=as.data.frame(subset(output, padj < 0.1)[,c("gene", "symbol")]),
 		file=paste("DESeq2", name, "DEG.txt", sep="_"),
 		sep="\t",
 		col.names=FALSE,
@@ -372,7 +393,7 @@ proc_edger <- function(inputdata) {
 		row.names=FALSE,
 		quote=FALSE)
 	write.table(
-		x=as.data.frame(DEG$symbol),
+		x=as.data.frame(DEG[,c("gene","symbol")]),
 		file="edgeR_DEG.txt",
 		sep="\t",
 		col.names=FALSE,
@@ -400,9 +421,26 @@ exploratoryDataAnalysisedgeR <- function(deg, disp){
 		res=500)
 	plotBCV(disp)
 	dev.off()
-	#normalizedCounts <-
+	normalizedCounts <- cpm(disp)
+	normalizedCounts_named <- ens2symbol(
+		dearesult=normalizedCounts,
+		columnsOfInterest=c("gene", colnames(normalizedCounts), "symbol"),
+		colnames=c("gene", colnames(normalizedCounts), "symbol"))
 	#makePCA(normalizedCounts)
-	#save normalizedCounts to file
+	write.table(
+		x=normalizedCounts_named,
+		file="edgeR_normalizedCounts_cpm.txt",
+		sep="\t",
+		col.names=TRUE,
+		row.names=FALSE,
+		quote=FALSE)
+	write.table(
+		x=normalizedCounts_named[,c("gene", "symbol")],
+		file="edgeR_genesconsidered.txt",
+		sep="\t",
+		col.names=TRUE,
+		row.names=FALSE,
+		quote=FALSE)
 	}
 
 ens2symbol <- function(dearesult, columnsOfInterest, colnames) { #convert ensembl identifiers to gene symbols using 'annotables', select columns and rename
