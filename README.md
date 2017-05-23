@@ -11,10 +11,10 @@ Command line Rscript to perform differential expression analysis using DESeq2, e
 - Creates detailed tables and lists of differentially expressed genes  
 
 ## Usage
-DEA.R [sampleInfoFile] [annotation.gtf]  
+`DEA.R [sampleInfoFile] [annotation.gtf]`
 with:  
 - sampleInfoFile:     file specifying samples and covariates (see further)
-- annotation.gtf      An annotation file in gtf format matching the reference genome used for alignment  
+- annotation.gtf:      An annotation file in gtf format matching the reference genome used for alignment  
 
 ## Structure sample info file
 The sample info file contains all information required for the script.  
@@ -31,3 +31,13 @@ The reference level for the field condition should be "CON" (case sensitive)
 #### Additional covariates
 can be specified in the sample info file, e.g.:  
 - 'library_prep_by': Bob, Alice  
+
+
+## Create a test dataset
+This script comes with a bash script "MakeTest.sh" which will download data from SRA, perform alignment and create a sample info file which you can use directly for testing the DEA.R script.  
+Dependencies for this bash script are fastq-dump, STAR, wget and gunzip  
+It will use about ... Gb of space on your hard disk, so make sure sufficient space is left.  
+
+The only argument this script takes is the number of processes which it can use,  
+e.g. for running twelve processes you use `bash MakeTest.sh 12`
+Make sure to adjust this accordingly to your available computer architecture
