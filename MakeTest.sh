@@ -14,10 +14,10 @@ mkdir MakeTestDir || { echo >&2 "Could not make working directory, do you have w
 cd MakeTestDir
 
 echo "Testing if all required software is available and in the path..."
-hash fastq-dump 2>/dev/null || { echo >&2 "Software Error: MakeTest requires fastq-dump to be installed and in the path."; exit 1; }
-hash STAR 2>/dev/null || { echo >&2 "Software Error: MakeTest requires STAR to be installed and in the path."; exit 1; }
-hash wget 2>/dev/null || { echo >&2 "Software Error: MakeTest requires wget to be installed and in the path."; exit 1; }
-hash gunzip 2>/dev/null || { echo >&2 "Software Error: MakeTest requires gunzip to be installed and in the path."; exit 1; }
+hash fastq-dump 2>/dev/null || { echo >&2 "Dependency Error: MakeTest requires fastq-dump to be installed and in the path."; exit 1; }
+hash STAR 2>/dev/null || { echo >&2 "Dependency Error: MakeTest requires STAR to be installed and in the path."; exit 1; }
+hash wget 2>/dev/null || { echo >&2 "Dependency Error: MakeTest requires wget to be installed and in the path."; exit 1; }
+hash gunzip 2>/dev/null || { echo >&2 "Dependency Error: MakeTest requires gunzip to be installed and in the path."; exit 1; }
 echo -e "It seems all required software is present.\n"
 
 echo "Downloading reference genome and annotation from Ensembl..."
@@ -32,7 +32,7 @@ echo -e "Reference genome and annotation downloaded.\n"
 echo "Downloading fastq files for test data from SRA. This will take a while..."
 for SRR in SRR1039508 SRR1039509 SRR1039512 SRR1039513 SRR1039516 SRR1039517 SRR1039520 SRR1039521
 do
-fastq-dump --split-3 $SRR
+fastq-dump --split-3 -X 1000000 $SRR
 gzip ${SRR}*.fastq
 done
 echo -e "Fastq files downloaded.\n"
@@ -59,15 +59,27 @@ STAR --runThreadN $1 \
 done ;
 echo -e "Alignment completed.\n"
 
+echo "Creating sample info file..."
 echo -e "sample\tcondition\tcell\tsequencing\tstrandedness" > test-sample-info.interm
+echo -e "SRR1039508\tCON\tA\tPE\tunstranded" >> test-sample-info.interm
+echo -e "SRR1039509\tTRT\tA\tPE\tunstranded" >> test-sample-info.interm
+echo -e "SRR1039512\tCON\tB\tPE\tunstranded" >> test-sample-info.interm
+echo -e "SRR1039513\tTRT\tB\tPE\tunstranded" >> test-sample-info.interm
+echo -e "SRR1039516\tCON\tC\tPE\tunstranded" >> test-sample-info.interm
+echo -e "SRR1039517\tTRT\tC\tPE\tunstranded" >> test-sample-info.interm
+echo -e "SRR1039520\tCON\tD\tPE\tunstranded" >> test-sample-info.interm
+echo -e "SRR1039521\tTRT\tD\tPE\tunstranded" >> test-sample-info.interm
 echo "file" > bams
 for f in *.bam ; do readlink -f $f >> bams ; done
+paste bams test-sample-info.interm > test-sample-info.txt
+rm test-sample-info.interm bams
+SINFO=$(readlink -f test-sample-info.txt)
+echo "Sample info file ready."
 
 echo "Cleaning up intermediate files..."
-#rm *.fastq.gz
-#rm *.out
+#rm *.fastq.gz *.out
 #rm -r *_STARtmp
+du -hs
 cd ..
-SINFO=$(readlink -f test-sample-info.txt)
 echo "MakeTest.sh is finished, ready to start testing DEA.R using:"
 echo "DEA.R $SINFO $GTF"
