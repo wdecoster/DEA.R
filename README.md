@@ -34,7 +34,7 @@ can be specified in the sample info file, e.g.:
 
 
 ## Create a test dataset
-This script comes with a bash script "MakeTest.sh" which will download data from SRA, perform alignment and create a sample info file which you can use directly for testing the DEA.R script.  
+This tool comes with a bash script "MakeTest.sh" which will download data from SRA, perform alignment and create a sample info file which you can use directly for testing the DEA.R script. Only one million reads per sample are downloaded to reduce time and storage space used.  
 Dependencies for this bash script are fastq-dump, STAR, wget and gunzip  
 It will use about ... Gb of space on your hard disk, so make sure sufficient space is left.  
 
