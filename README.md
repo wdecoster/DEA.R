@@ -23,7 +23,8 @@ These fields are mandatory present in the file, header is case sensitive
 - 'file': exact path to bamfile to be used for counting  
 - 'sample': identifier of the sample to be used  
 - 'condition': main factor on which the differential expression should be performed.   
-The reference level for the field condition should be "CON" (case sensitive)  
+The reference level for the field condition should be "CON" (case sensitive).  
+If more than 2 groups are present in this field all contrasts with the "CON" group will be tested.  
 - 'sequencing': containing mode of sequencing: either PE or SE  
 - 'strandedness' type of strandedness of data: either unstranded, stranded or reverse  
 #### Optional field
@@ -36,7 +37,7 @@ can be specified in the sample info file, e.g.:
 ## Create a test dataset
 This tool comes with a bash script "MakeTest.sh" which will download data from SRA, perform alignment and create a sample info file which you can use directly for testing the DEA.R script. Only one million reads per sample are downloaded to reduce time and storage space used.  
 Dependencies for this bash script are fastq-dump, STAR, wget and gunzip  
-It will use about ... Gb of space on your hard disk, so make sure sufficient space is left.  
+It will use about 33 Gb of space on your hard disk, so make sure sufficient space is left.  
 
 The only argument this script takes is the number of processes which it can use,  
 e.g. for running twelve processes you use `bash MakeTest.sh 12`  
