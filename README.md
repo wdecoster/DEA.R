@@ -11,7 +11,7 @@ Command line Rscript to perform differential expression analysis using DESeq2, e
 - Creates detailed tables and lists of differentially expressed genes  
 
 ## Usage
-`DEA.R [sampleInfoFile] [annotation.gtf]`
+`DEA.R [sampleInfoFile] [annotation.gtf]`  
 with:  
 - sampleInfoFile:     file specifying samples and covariates (see further)
 - annotation.gtf:      An annotation file in gtf format matching the reference genome used for alignment  
@@ -39,5 +39,5 @@ Dependencies for this bash script are fastq-dump, STAR, wget and gunzip
 It will use about ... Gb of space on your hard disk, so make sure sufficient space is left.  
 
 The only argument this script takes is the number of processes which it can use,  
-e.g. for running twelve processes you use `bash MakeTest.sh 12`
+e.g. for running twelve processes you use `bash MakeTest.sh 12`  
 Make sure to adjust this accordingly to your available computer architecture
