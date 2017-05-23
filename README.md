@@ -36,6 +36,11 @@ can be specified in the sample info file, e.g.:
 
 ## Create a test dataset
 This tool comes with a bash script "MakeTest.sh" which will download data from SRA, perform alignment and create a sample info file which you can use directly for testing the DEA.R script. Only one million reads per sample are downloaded to reduce time and storage space used.  
+The data used is from RNA-seq on airway smooth muscle cells treated with dexamethasone treated with dexamethasone,  
+- Citation: Himes BE, Jiang X, Wagner P, Hu R, Wang Q, Klanderman B, Whitaker RM, Duan Q, Lasky-Su J, Nikolos C, Jester W, Johnson M, Panettieri R Jr, Tantisira KG, Weiss ST, Lu Q. 'RNA-Seq Transcriptome Profiling Identifies CRISPLD2 as a Glucocorticoid Responsive Gene that Modulates Cytokine Function in Airway Smooth Muscle Cells.' PLoS One. 2014 Jun 13;9(6):e99625.  
+- PMID: 24926665.
+- GEO: GSE52778.  
+
 Dependencies for this bash script are fastq-dump, STAR, wget and gunzip  
 It will use about 33 Gb of space on your hard disk, so make sure sufficient space is left.  
 
