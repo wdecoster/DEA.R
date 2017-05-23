@@ -266,7 +266,10 @@ proc_limma_voom <- function(inputdata) {
 		dearesult=degTable[order(degTable$adj.P.Val),],
 		columnsOfInterest=c('gene', 'logFC', 'P.Value', 'adj.P.Val', 'symbol'),
 		colnames=c("gene", "logFC", "pvalue", "padj", "symbol"))
-	makeVolcanoPlot(mutate(output, sig=ifelse(output$padj<0.1, "padj<0.1", "Not Sig")), "Limma-voom") #Call volcanoplot function
+	makeVolcanoPlot(
+		input=mutate(output, sig=ifelse(output$padj<0.1, "padj<0.1", "Not Sig")),
+		toolname="Limma-voom",
+		names=c("padj<0.1", "Not Sig"))
 	DEG <- subset(output, padj < 0.1)
 	cat(paste("Found", nrow(subset(DEG, logFC > 0)), "upregulated genes and", nrow(subset(DEG, logFC < 0)), "downregulated genes using Limma-voom.\n", collapse=" "))
 	write.table(
@@ -363,7 +366,10 @@ getDESeqDEAbyContrast <- function(dds, group) {
 		col.names=FALSE,
 		row.names=FALSE,
 		quote=FALSE)
-	makeVolcanoPlot(mutate(output, sig=ifelse(output$padj<0.1, "padj<0.1", "Not Sig")), paste("DESeq2", contrast, sep="_"))
+	makeVolcanoPlot(
+		input=mutate(output, sig=ifelse(output$padj<0.1, "padj<0.1", "Not Sig")),
+		toolname=paste("DESeq2", contrast, sep="_"),
+		names=c("padj<0.1", "Not Sig"))
 	jpeg(
 		filename=paste('DESeq2', contrast, 'Histogram_pvalues.jpeg', sep="_"),
 		width=8,
@@ -406,7 +412,10 @@ proc_edger <- function(inputdata) {
 		row.names=FALSE,
 		quote=FALSE)
 	cat(paste("Found", nrow(subset(DEG, logFC > 0)), "upregulated genes and", nrow(subset(DEG, logFC < 0)), "downregulated genes with edgeR-glmLRT.\n", collapse=" "))
-	makeVolcanoPlot(mutate(output, sig=ifelse(output$FDR<0.1, "FDR<0.1", "Not Sig")), "edgeR")
+	makeVolcanoPlot(
+		input=mutate(output, sig=ifelse(output$FDR<0.1, "FDR<0.1", "Not Sig")),
+		toolname="edgeR",
+		names=c("FDR<0.1", "Not Sig"))
 	return(DEG$gene)
 	}
 
@@ -502,16 +511,18 @@ makePCA <- function(normcounts, proc) {
 	suppressMessages(ggsave(paste(proc, 'PCAplot_normalizedcounts.jpeg', sep="_"), pca, device = "jpeg"))
 	}
 
-makeVolcanoPlot <- function(input, proc) {
+makeVolcanoPlot <- function(input, toolname, names) {
+	colours = c("red", "black")
+	names(colours) = names
 	volc = ggplot(input, aes(logFC, -log10(pvalue))) +
+	scale_color_manual(values=colours) +
 		geom_point(aes(col=sig)) +
-		scale_color_manual(values=c("black", "red")) +
-		ggtitle(proc)
+		ggtitle(toolname)
 	if (substr(input$gene[1], 1, 4) == 'ENSG'){
 		volc + geom_text_repel(data=head(input, 20), aes(label=symbol)) #If ENSG is present, the results were converted to symbol notation earlier and can use these
 	} else {
 		volc + geom_text_repel(data=head(input, 20), aes(label=gene)) }
-	suppressMessages(ggsave(paste(proc, "Volcanoplot.jpeg", sep="_"), device="jpeg"))
+	suppressMessages(ggsave(paste(toolname, "Volcanoplot.jpeg", sep="_"), device="jpeg"))
 	}
 
 makeVennDiagram <- function(set1, set2, set3) {
