@@ -9,10 +9,10 @@
 #Author: wdecoster
 #Twitter: @wouter_decoster
 #Questions: https://www.biostars.org/t/DEA.R/
-version="0.6.1"
+version="0.7.0"
 
 sanityCheck <- function() {
-	arguments = unlist(strsplit(commandArgs(trailingOnly = TRUE)," "))
+	arguments <- unlist(strsplit(commandArgs(trailingOnly = TRUE)," "))
 	if (length(arguments) == 0) {usage()}
 	if (length(arguments) != 2 && ! arguments[1] %in% c("install", "citations", "version", "--version", "-v")) { usage() }
 	inputdata <- list()
@@ -34,7 +34,7 @@ sanityCheck <- function() {
 		'unstranded' = 0,
 		'stranded' = 1,
 		'reverse' = 2)
-	inputdata$design = makedesign(inputdata$sampleInfo)
+	inputdata$design <- makedesign(inputdata$sampleInfo)
 	inputdata$counts <- getCounts(inputdata=inputdata)
 	return(inputdata)
 	}
@@ -218,7 +218,7 @@ genderPlots <- function(genders, counts) {
 
 install <- function() {
 	update.packages()
-	install.packages(c("devtools", "dplyr", "ggplot2", "ggrepel"), quiet=T)
+	install.packages(c("devtools", "dplyr", "ggplot2", "ggrepel", "VennDiagram"), quiet=T, repos='http://cran.rstudio.com/')
 	devtools::install_github("stephenturner/annotables")
 	source("https://bioconductor.org/biocLite.R")
 	biocLite(c("DESeq2", "edgeR", "Rsubread	"))
@@ -263,7 +263,7 @@ proc_limma_voom <- function(inputdata) {
 	fit <- eBayes(lmFit(vwts))
 	degTable <- topTable(fit,number=Inf, coef=ncol(design))
 	output <- ens2symbol(
-		dearesult=degTable,
+		dearesult=degTable[order(degTable$adj.P.Val),],
 		columnsOfInterest=c('gene', 'logFC', 'P.Value', 'adj.P.Val', 'symbol'),
 		colnames=c("gene", "logFC", "pvalue", "padj", "symbol"))
 	makeVolcanoPlot(mutate(output, sig=ifelse(output$padj<0.1, "padj<0.1", "Not Sig")), "Limma-voom") #Call volcanoplot function
@@ -282,6 +282,7 @@ proc_limma_voom <- function(inputdata) {
 		col.names=FALSE,
 		row.names=FALSE,
 		quote=FALSE)
+	return(DEG$gene)
 	}
 
 
@@ -295,8 +296,11 @@ proc_deseq2 <- function(inputdata) {
 	dds$condition <- relevel(dds$condition, ref="CON")
 	dds <- DESeq(dds, quiet=TRUE, parallel=TRUE)
 	exploratoryDataAnalysisDESeq(dds)
-	contrasts = levels(dds$condition)
-	for (group in contrasts[contrasts != "CON"]) { getDESeqDEAbyContrast(dds, group) }
+	contrasts <- levels(dds$condition)
+	for (group in contrasts[contrasts != "CON"]) {
+		DEG <- getDESeqDEAbyContrast(dds, group)
+		}
+	return(DEG)
 	}
 
 
@@ -337,9 +341,9 @@ exploratoryDataAnalysisDESeq <- function(dds) {
 
 
 getDESeqDEAbyContrast <- function(dds, group) {
-	name = paste("CONvs", group, sep="")
+	contrast <- paste("CONvs", group, sep="")
 	res <- results(dds, parallel=TRUE, addMLE=T, contrast=c("condition", "CON", group))
-	cat('\n\nSummary data from DESeq2 for ', name, ':', sep="")
+	cat('\n\nSummary data from DESeq2 for ', contrast, ':', sep="")
 	summary(res)
 	output <- ens2symbol(
 		dearesult=res[order(res$padj),],
@@ -347,26 +351,28 @@ getDESeqDEAbyContrast <- function(dds, group) {
 		colnames=c("gene", "logFC", "logFC-unshrunken", "pvalue", "padj", "symbol"))
 	write.table(
 		x=as.data.frame(output),
-		file=paste("DESeq2", name, "differential_expression.txt", sep="_"),
+		file=paste("DESeq2", contrast, "differential_expression.txt", sep="_"),
 		sep="\t",
 		row.names=FALSE,
 		quote=FALSE)
+	DEG <- as.data.frame(subset(output, padj < 0.1)[,c("gene", "symbol")])
 	write.table(
-		x=as.data.frame(subset(output, padj < 0.1)[,c("gene", "symbol")]),
-		file=paste("DESeq2", name, "DEG.txt", sep="_"),
+		x=DEG,
+		file=paste("DESeq2", contrast, "DEG.txt", sep="_"),
 		sep="\t",
 		col.names=FALSE,
 		row.names=FALSE,
 		quote=FALSE)
-	makeVolcanoPlot(mutate(output, sig=ifelse(output$padj<0.1, "padj<0.1", "Not Sig")), paste("DESeq2", name, sep="_"))
+	makeVolcanoPlot(mutate(output, sig=ifelse(output$padj<0.1, "padj<0.1", "Not Sig")), paste("DESeq2", contrast, sep="_"))
 	jpeg(
-		filename=paste('DESeq2', name, 'Histogram_pvalues.jpeg', sep="_"),
+		filename=paste('DESeq2', contrast, 'Histogram_pvalues.jpeg', sep="_"),
 		width=8,
 		height=8,
 		units="in",
 		res=500)
 	hist(output$pvalue, main="Histogram of pvalues")
 	dev.off()
+	return(DEG$gene)
 	}
 
 proc_edger <- function(inputdata) {
@@ -401,6 +407,7 @@ proc_edger <- function(inputdata) {
 		quote=FALSE)
 	cat(paste("Found", nrow(subset(DEG, logFC > 0)), "upregulated genes and", nrow(subset(DEG, logFC < 0)), "downregulated genes with edgeR-glmLRT.\n", collapse=" "))
 	makeVolcanoPlot(mutate(output, sig=ifelse(output$FDR<0.1, "FDR<0.1", "Not Sig")), "edgeR")
+	return(DEG$gene)
 	}
 
 exploratoryDataAnalysisedgeR <- function(deg, disp){
@@ -480,7 +487,7 @@ makePCA <- function(normcounts, proc) {
 	select <- order(rv, decreasing = TRUE)[seq_len(min(500, length(rv)))]
 	pca <- prcomp(normcounts[select, ])
 	percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
-	scree_plot=data.frame(percentVar)
+	scree_plot <- data.frame(percentVar)
 	scree_plot[1:10,2]<- c(1:10)
 	colnames(scree_plot)<-c("variance","component_number")
 	scree <- ggplot(scree_plot[1:10,], mapping=aes(x=component_number, y=variance)) +
@@ -507,10 +514,30 @@ makeVolcanoPlot <- function(input, proc) {
 	suppressMessages(ggsave(paste(proc, "Volcanoplot.jpeg", sep="_"), device="jpeg"))
 	}
 
+makeVennDiagram <- function(set1, set2, set3) {
+	jpeg(
+		filename="VennDiagram-DEG.jpeg",
+		width=8,
+		height=8,
+		units="in",
+		res=500)
+	draw.triple.venn(
+		area1=length(set1),
+		area2=length(set2),
+		area3=length(set3),
+		n12=length(intersect(set1, set2)),
+		n23=length(intersect(set2, set3)),
+		n13=length(intersect(set1, set3)),
+		n123=length(intersect(set1, intersect(set2, set3))),
+		category=c("edgeR", "Limma-voom", "DESeq2"),
+		fill = c("blue", "red", "green"))
+	dev.off()
+	}
+
 suppressMessages(library("ggplot2"))
 suppressMessages(library("ggrepel"))
 
-inputdata = sanityCheck()
+inputdata <- sanityCheck()
 suppressMessages(library("BiocParallel"))
 suppressMessages(library("DESeq2"))
 suppressMessages(library("edgeR"))
@@ -520,7 +547,10 @@ suppressMessages(library("pheatmap"))
 suppressMessages(library("RColorBrewer"))
 suppressMessages(library("dplyr"))
 suppressMessages(library("genefilter"))
+suppressMessages(library("VennDiagram"))
 
-
-for (func in c(proc_edger, proc_limma_voom, proc_deseq2)) {func(inputdata)}
+DEG_edger <- proc_edger(inputdata)
+DEG_limma <- proc_limma_voom(inputdata)
+DEG_deseq <- proc_deseq2(inputdata)
+makeVennDiagram(DEG_edger, DEG_limma, DEG_deseq)
 cat("\n\nFinished!\n\n")
