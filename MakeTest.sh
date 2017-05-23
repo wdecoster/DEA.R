@@ -77,9 +77,8 @@ SINFO=$(readlink -f test-sample-info.txt)
 echo "Sample info file ready."
 
 echo "Cleaning up intermediate files..."
-#rm *.fastq.gz *.out
-#rm -r *_STARtmp
-du -hs
+rm *.fastq.gz *.out
+rm -r *_STARtmp
 cd ..
 echo "MakeTest.sh is finished, ready to start testing DEA.R using:"
 echo "DEA.R $SINFO $GTF"
