@@ -1,4 +1,3 @@
-#!/complgen/bin/anaconda/bin/python2.7
 # Script to perform EnrichR enrichment analysis
 # Based on code available on enrichR website,
 # adapted by wdecoster
