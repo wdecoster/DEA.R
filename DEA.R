@@ -104,13 +104,10 @@ getCounts <- function(inputdata) {
 		if (! all(colnames(counts) == inputdata$sampleInfo$sample)) {
 			giveError("ERROR:\nSaved file <FeatureCounts_RawCounts.RData> doesn't match with sample info file.")}
 	} else {
-		bams <- inputdata$sampleInfo$file
-		if (! length(bams) == length(inputdata$sampleInfo$sample)) {
-			giveError("ERROR: Mismatch between number of samples in bam directory [', length(bams), '] and samples in sample info file [', length(inputdata$sampleInfo$sample),']") }
 		cat("Performing counting with featureCounts from Rsubread.\n")
 		suppressMessages(library(Rsubread))
 		capture.output(
-			counts <- featureCounts(bams,
+			counts <- featureCounts(inputdata$sampleInfo$file,
 				annot.ext=inputdata$annotation,
 				isGTFAnnotationFile=TRUE,
 				GTF.featureType="exon",
