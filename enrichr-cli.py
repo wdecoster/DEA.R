@@ -6,7 +6,7 @@ import json
 import requests
 import sys
 import os
-
+import argparse
 
 
 databases = ['Achilles_fitness_decrease', 'Achilles_fitness_increase', 'Aging_Perturbations_from_GEO_down', 'Aging_Perturbations_from_GEO_up',
@@ -28,6 +28,10 @@ databases = ['Achilles_fitness_decrease', 'Achilles_fitness_increase', 'Aging_Pe
 
 
 def senddata(genes):
+	'''
+	Send the input gene list to enrichr, return query
+	Call function to check how many genes were recognized
+	'''
 	input = {
 		'list': (None, '\n'.join(genes)),
 		'description': (None, 'enrichR.py query')
@@ -41,6 +45,9 @@ def senddata(genes):
 
 
 def askgenelist(id, inlist):
+	'''
+	Compare the genes send and received to get succesfully recognized genes
+	'''
 	response = requests.get('http://amp.pharm.mssm.edu/Enrichr/view?userListId=%s' % id)
 	if not response.ok:
 		raise Exception('Error getting gene list back')
@@ -50,6 +57,9 @@ def askgenelist(id, inlist):
 
 
 def whichdb():
+	'''
+	Check user-chosen databases or use a default set
+	'''
 	standarddb = ['KEGG_2015', 'BioCarta_2016', 'WikiPathways_2016', 'Reactome_2016',
 					'GO_Biological_Process_2015', 'GO_Cellular_Component_2015', 'GO_Molecular_Function_2015',
 					'MSigDB_Computational', 'Panther_2016']
@@ -66,6 +76,9 @@ def whichdb():
 
 
 def procesinput():
+	'''
+	check input to the script, either as a file or on stdin
+	'''
 	if sys.argv[1] == 'databases':
 		for option in databases:
 			print(option)
@@ -81,6 +94,10 @@ def procesinput():
 
 
 def getresults(id, gene_set_library):
+	'''
+	Receive the enrichment for the chosen databases
+	write to files with default names
+	'''
 	filename = gene_set_library + '_enrichment'
 	url = 'http://amp.pharm.mssm.edu/Enrichr/export?userListId=%s&filename=%s&backgroundType=%s' % (id, filename, gene_set_library)
 	response = requests.get(url, stream=True)
