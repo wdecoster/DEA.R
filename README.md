@@ -47,3 +47,35 @@ It will use about 33 Gb of space on your hard disk, so make sure sufficient spac
 The only argument this script takes is the number of processes which it can use,  
 e.g. for running twelve processes you use `bash MakeTest.sh 12`  
 Make sure to adjust this accordingly to your available computer architecture
+
+# Companion scripts
+
+## enrichr-cli.py
+Command line interface to [Enrichr](http://amp.pharm.mssm.edu/Enrichr/). I am not affiliated to the authors of Enrichr but just use their API.
+Input is a list of gene symbols, either using a file or on stdin.
+
+#### Usage
+usage: enrichr-cli.py [-h] [-g GENES] [-d [DATABASES [DATABASES ...]]] [-w] [-p PREFIX] [-o OUTDIR]
+
+mandatory argument:  
+-g GENES, --genes GENES
+                      A genelist to be queried, either a list in a file or '-' for a list of genes on stdin  
+
+optional arguments:  
+  -h, --help            show this help message and exit  
+  -d [DATABASES [DATABASES ...]], --databases [DATABASES [DATABASES ...]]
+                        Databases to query, omit to use a default set.  
+  -w, --which           List databases which can be queried and quit.  
+  -p PREFIX, --prefix PREFIX
+                        Fixed prefix to name the output files with  
+  -o OUTDIR, --outdir OUTDIR
+                        Output directory to store files in. Will be created if it doesn't exist.  
+
+## SimpleViolin.R
+Script to create violin plots of expression data
+
+#### Usage
+SimpleViolin.R countsfile.txt sample_info_file.txt targets.  
+Targets are either  
+- A comma separated list of gene symbols
+- A differential expression result, of which the top 10 will be taken
