@@ -30,13 +30,12 @@ databases = ['Achilles_fitness_decrease', 'Achilles_fitness_increase', 'Aging_Pe
 def getArgs():
 	parser = argparse.ArgumentParser(description="Perform enrichment analysis for a gene list and multiple databases.")
 	parser.add_argument("-g", "--genes",
-					help="A genelist to be queried, either a list in a file or '-' for a list of genes on stdin",
-					required=True)
+					help="A genelist to be queried, either a list in a file or '-' for a list of genes on stdin")
 	parser.add_argument("-d", "--databases",
-					help="Databases to query, omit to use a default set."
+					help="Databases to query, omit to use a default set.",
 					nargs='*')
 	parser.add_argument("-w", "--which",
-					help="List databases which can be queried and quit."
+					help="List databases which can be queried and quit.",
 					action='store_true')
 	parser.add_argument("-p", "--prefix",
 					help="Fixed prefix to name the output files with",
@@ -44,7 +43,10 @@ def getArgs():
 	parser.add_argument("-o", "--outdir",
 					help="Output directory to store files in. Will be created if it doesn't exist.",
 					default='.')
-	return parser.parse_args()
+	args = parser.parse_args()
+	if not args.genes and not args.which:
+		sys.exit("Input Error: Required argument is -g/--genes containing list of genes to use for enrichment.")
+	return args
 
 def senddata(genes):
 	'''
@@ -72,7 +74,7 @@ def askgenelist(id, inlist):
 		raise Exception('Error getting gene list back')
 	returnedL = json.loads(response.text)["genes"]
 	returnedN = sum([1 for gene in inlist if gene in returnedL])
-	print('{} genes succesfully recognized by enrichR'.format(returnedN))
+	print('{} genes succesfully recognized by Enrichr'.format(returnedN))
 
 
 def whichdb():
@@ -101,8 +103,12 @@ def procesinput():
 	if args.which:
 		for option in databases:
 			print(option)
-			sys.exit(0)
+		sys.exit(0)
+	if args.outdir:
+		if not os.path.exists(args.outdir):
+			os.makedirs(args.outdir)
 	if args.genes == '-':
+		print("Expecting input on stdin.")
 		genes = set([item.strip() for item in sys.stdin.readlines() if not item == ""])
 	else:
 		if os.path.isfile(args.genes):
