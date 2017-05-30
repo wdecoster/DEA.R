@@ -40,6 +40,7 @@ sanityCheck <- function(){
 		giveError("USAGE: SimpleViolin.R countsfile.txt sample_info_file.txt targets.\nTargets are either\n-A comma separated list of gene symbols\n-A differential expression result.")
 	} else {
 		data$counts <- read.table(args[1], stringsAsFactors=F, header=T, row.names=1)
+		if (! "sample" %in% names(data$sampleInfo)) {giveError("Error: <sample> is a mandatory field in the sample info file!")}
 		data$sampleInfo <- read.table(args[2], stringsAsFactors=F, header=T)
 		if (!"condition" %in% names(data$sampleInfo)) {giveError('ERROR: Could not find required field <condition> in sample info file.')} #A required field in sample file is "condition"
 		data$targets <- processTargets(args[3], data$counts)
