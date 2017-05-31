@@ -9,7 +9,7 @@
 #Author: wdecoster
 #Twitter: @wouter_decoster
 #Questions: https://www.biostars.org/t/DEA.R/
-version="0.7.0"
+version="0.7.1"
 
 sanityCheck <- function() {
 	arguments <- unlist(strsplit(commandArgs(trailingOnly = TRUE)," "))
@@ -342,7 +342,7 @@ exploratoryDataAnalysisDESeq <- function(dds) {
 
 getDESeqDEAbyContrast <- function(dds, group) {
 	contrast <- paste("CONvs", group, sep="")
-	res <- results(dds, parallel=TRUE, addMLE=T, contrast=c("condition", "CON", group))
+	res <- results(dds, parallel=TRUE, addMLE=T, contrast=c("condition", group, "CON"))
 	cat('\n\nSummary data from DESeq2 for ', contrast, ':', sep="")
 	summary(res)
 	output <- ens2symbol(
