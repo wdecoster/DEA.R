@@ -1,15 +1,13 @@
-#!/usr/bin/Rscript
-#Script to automate differential expression analysis using the following R algorithms: DESeq2, edgeR and limma
-#Based on manuals, pieces of code found on the internet and helpful comments of colleagues
+#!/home/wdecoster/anaconda3/bin/Rscript
+# Script to automate differential expression analysis using the following R algorithms: DESeq2, edgeR and limma
+# Based on manuals, pieces of code found on the internet and helpful comments of colleagues
 ###Required input is:###
 #1) A sampleInfo File matching the samples containing at least the fields 'file', 'sample' and condition' with additional covariates (reference level condition == "CON")
 #2) An annotation file in gtf format matching the reference genome used for alignment
-######
 
 #Author: wdecoster
 #Twitter: @wouter_decoster
-#Questions: https://www.biostars.org/t/DEA.R/
-version="0.7.1"
+version="0.8.0"
 
 sanityCheck <- function() {
 	arguments <- unlist(strsplit(commandArgs(trailingOnly = TRUE)," "))
@@ -35,7 +33,27 @@ sanityCheck <- function() {
 		'stranded' = 1,
 		'reverse' = 2)
 	inputdata$design <- makedesign(inputdata$sampleInfo)
-	inputdata$counts <- getCounts(inputdata=inputdata)
+	if (file.exists("FeatureCounts_RawCounts.RData")){
+		load("FeatureCounts_RawCounts.RData")
+		cat("Found RData countsfile from FeatureCounts, using this one without perform counting again.\n")
+		if (! all(colnames(counts) == inputdata$sampleInfo$sample)) {
+			giveError("ERROR:\nSaved file <FeatureCounts_RawCounts.RData> doesn't match with sample info file.")}
+		inputdata$counts <- counts
+		inputdata$source <- "bam"
+	} else if (file.exists("Salmon_Quantification.RData")){
+		load("Salmon_Quantification.RData")
+		cat("Found RData quantification file from Salmon, using this one without perform counting again.\n")
+		if (! all(colnames(counts) == inputdata$sampleInfo$sample)) {
+			giveError("ERROR:\nSaved file <Salmon_Quantification.RData> doesn't match with sample info file.")}
+		inputdata$counts <- counts
+		inputdata$source <- "salmon"
+	} else if (all(endsWith(inputdata$sampleInfo$file, ".bam"))) {
+			inputdata$source <- "bam"
+			inputdata$counts <- getCountsFromBam(inputdata=inputdata)
+	} else if (all(endsWith(inputdata$sampleInfo$file, ".sf"))) {
+			inputdata$source <- "salmon"
+			inputdata$counts <- getCountsFromSalmon(inputdata=inputdata)
+	} else {giveError("ERROR:\n Paths in sample info file should all end with either <.bam> or <.sf>")}
 	return(inputdata)
 	}
 
@@ -97,46 +115,56 @@ checkSampleInfo <- function(sampleInfoFile) {
 	return(sampleInfo)
 	}
 
-getCounts <- function(inputdata) {
-	if (file.exists("FeatureCounts_RawCounts.RData")){
-		load("FeatureCounts_RawCounts.RData")
-		cat("Found RData countsfile, using this one without perform counting again.\n")
-		if (! all(colnames(counts) == inputdata$sampleInfo$sample)) {
-			giveError("ERROR:\nSaved file <FeatureCounts_RawCounts.RData> doesn't match with sample info file.")}
-	} else {
-		cat("Performing counting with featureCounts from Rsubread.\n")
-		suppressMessages(library(Rsubread))
+getCountsFromSalmon <- function(inputdata) {
+	suppressMessages(library("tximport"))
+	suppressMessages(library("readr"))
+	suppressMessages(library("EnsDb.Hsapiens.v86"))
+	txdf <- transcripts(EnsDb.Hsapiens.v86, return.type="DataFrame")
+	tx2gene <- as.data.frame(txdf[,c("tx_id","gene_id")])
+	counts <- list()
+	suppressMessages(
 		capture.output(
-			counts <- featureCounts(inputdata$sampleInfo$file,
-				annot.ext=inputdata$annotation,
-				isGTFAnnotationFile=TRUE,
-				GTF.featureType="exon",
-				strandSpecific=inputdata$strand, # unstranded: 0, stranded: 1, reversely stranded: 2
-				nthreads=inputdata$cores,
-				isPairedEnd=inputdata$PE,
-				countMultiMappingReads=FALSE),
-			file = "FeatureCounts.log")
-		cat("Counting complete, creating count-statistics.\n")
-		colnames(counts$counts) <- inputdata$sampleInfo$sample
-		write.table(
-			x=cbind(feature=rownames(counts$counts), counts$counts),
-			file="FeatureCounts_RawCounts.txt",
-			quote=F,
-			sep="\t",
-			row.names=F)
-		countStats(
-			statdat=counts$stat,
-			samples=inputdata$sampleInfo$sample,
-			inputdata=inputdata,
-			counts=counts$counts)
-		counts <- counts$counts
-		save(counts, file="FeatureCounts_RawCounts.RData")
-		}
+			counts$A <- tximport(inputdata$sampleInfo$file, type = "salmon", tx2gene = tx2gene, ignoreTxVersion=TRUE),
+			counts$B <- tximport(inputdata$sampleInfo$file, type = "salmon", tx2gene = tx2gene, countsFromAbundance = "lengthScaledTPM", ignoreTxVersion=TRUE),
+			file = "Tximport.log")
+		)
+	save(counts, file="Salmon_Quantification.RData")
+	return(counts)
+	}
+
+getCountsFromBam <- function(inputdata) {
+	cat("Performing counting with featureCounts from Rsubread.\n")
+	suppressMessages(library(Rsubread))
+	capture.output(
+		counts <- featureCounts(inputdata$sampleInfo$file,
+			annot.ext=inputdata$annotation,
+			isGTFAnnotationFile=TRUE,
+			GTF.featureType="exon",
+			strandSpecific=inputdata$strand, # unstranded: 0, stranded: 1, reversely stranded: 2
+			nthreads=inputdata$cores,
+			isPairedEnd=inputdata$PE,
+			countMultiMappingReads=FALSE),
+		file = "FeatureCounts.log")
+	cat("Counting complete, creating count-statistics.\n")
+	colnames(counts$counts) <- inputdata$sampleInfo$sample
+	write.table(
+		x=cbind(feature=rownames(counts$counts), counts$counts),
+		file="FeatureCounts_RawCounts.txt",
+		quote=F,
+		sep="\t",
+		row.names=F)
+	countStats(
+		statdat=counts$stat,
+		samples=inputdata$sampleInfo$sample,
+		inputdata=inputdata,
+		counts=counts$counts)
+	counts <- counts$counts
+	save(counts, file="FeatureCounts_RawCounts.RData")
 	return(counts)
 	}
 
 countStats <- function(statdat, samples, inputdata, counts) {
-	#Creating relative stats by dividing each number by the sum of Assigned, Unassigned_Ambiguity, Unassigned_NoFeaturesUnassigned_NoFeatures
+	# Creating relative stats by dividing each number by the sum of Assigned, Unassigned_Ambiguity, Unassigned_NoFeaturesUnassigned_NoFeatures
 	relativeStats <- cbind(
 						Status = paste(statdat$Status, "relative", sep="_"),
 						statdat[, 2:ncol(statdat)] / rep(as.numeric(statdat[1,2:ncol(statdat)] + statdat[2,2:ncol(statdat)] + statdat[4,2:ncol(statdat)]), each=11)
@@ -180,7 +208,7 @@ addLabel <- function(data) {
 	}
 
 genderPlots <- function(genders, counts) {
-	#Making gender specific plots based on https://www.ncbi.nlm.nih.gov/pubmed/23829492
+	# Making gender specific plots based on https://www.ncbi.nlm.nih.gov/pubmed/23829492
 	genderSpecificGenes = data.frame(
 		ens = c('ENSG00000129824', 'ENSG00000198692', 'ENSG00000067048', 'ENSG00000012817', 'ENSG00000229807'),
 		symbol = c('RPS4Y1', 'EIF1AY', 'DDX3Y', 'KDM5D', 'XIST'),
@@ -213,14 +241,6 @@ genderPlots <- function(genders, counts) {
 			}
 		}
 
-install <- function() {
-	update.packages()
-	install.packages(c("devtools", "dplyr", "ggplot2", "ggrepel", "VennDiagram"), quiet=T, repos='http://cran.rstudio.com/')
-	devtools::install_github("stephenturner/annotables")
-	source("https://bioconductor.org/biocLite.R")
-	biocLite(c("DESeq2", "edgeR", "Rsubread	"))
-	}
-
 citations <- function() {
 	cat("Packages used by this script with their citation:\n")
 	for (package in c("ggplot2", "ggrepel", "DESeq2", "edgeR", "limma", "pheatmap", "RColorBrewer", "dplyr")){
@@ -238,12 +258,16 @@ citations <- function() {
 
 proc_limma_voom <- function(inputdata) {
 	design <- model.matrix(inputdata$design, data=inputdata$sampleInfo)
-	dge <- calcNormFactors(DGEList(counts=inputdata$counts))
-	vwts <- voomWithQualityWeights(dge, design=design, normalization="none") #For outliers, use sample quality weights
+	if (inputdata$source == "bam"){
+		dge <- calcNormFactors(DGEList(counts=inputdata$counts))
+	} else if (inputdata$source == "salmon") {
+		dge <- calcNormFactors(DGEList(inputdata$counts$B$counts))
+	}
+	v <- voom(dge, design=design, normalization="none") #For outliers, use sample quality weights
 	normalizedCounts <- ens2symbol(
-		dearesult=vwts$E,
-		columnsOfInterest=c("gene", colnames(vwts$E), "symbol"),
-		colnames=c("gene", colnames(vwts$E), "symbol"))
+		dearesult=v$E,
+		columnsOfInterest=c("gene", colnames(v$E), "symbol"),
+		colnames=c("gene", colnames(v$E), "symbol"))
 	write.table(
 		x=normalizedCounts,
 		file="Limma-voom_normalizedcounts.txt",
@@ -257,7 +281,7 @@ proc_limma_voom <- function(inputdata) {
 		row.names=FALSE,
 		quote=FALSE)
 	#makePCA(vwts$E, "Limma-voom")
-	fit <- eBayes(lmFit(vwts))
+	fit <- eBayes(lmFit(v))
 	degTable <- topTable(fit,number=Inf, coef=ncol(design))
 	output <- ens2symbol(
 		dearesult=degTable[order(degTable$adj.P.Val),],
@@ -288,10 +312,17 @@ proc_limma_voom <- function(inputdata) {
 
 proc_deseq2 <- function(inputdata) {
 	register(MulticoreParam(inputdata$cores))
-	deseqdata <- DESeqDataSetFromMatrix(
-		countData=inputdata$counts,
-		colData=inputdata$sampleInfo,
-		design=inputdata$design)
+	if (inputdata$source == "bam") {
+		deseqdata <- DESeqDataSetFromMatrix(
+			countData=inputdata$counts,
+			colData=inputdata$sampleInfo,
+			design=inputdata$design)
+	} else if (inputdata$source == "salmon") {
+		deseqdata <- DESeqDataSetFromTximport(
+			txi=inputdata$counts$A,
+			colData=inputdata$sampleInfo,
+			design=inputdata$design)
+	}
 	dds <- deseqdata[rowSums(counts(deseqdata)) > 1,] #To prefilter the data and remove lowest counts
 	dds$condition <- relevel(dds$condition, ref="CON")
 	dds <- DESeq(dds, quiet=TRUE, parallel=TRUE)
@@ -380,9 +411,18 @@ getDESeqDEAbyContrast <- function(dds, group) {
 
 proc_edger <- function(inputdata) {
 	design <- model.matrix(inputdata$design, data=inputdata$sampleInfo)
-	d <- DGEList(
-		counts=data.matrix(inputdata$counts),
-		group=inputdata$sampleInfo$condition)
+	if (inputdata$source == "bam") {
+		d <- DGEList(
+			counts=data.matrix(inputdata$counts),
+			group=inputdata$sampleInfo$condition)
+	} else if (inputdata$source == "salmon") {
+		cts <- inputdata$counts$A$counts
+		normMat <- inputdata$counts$A$length
+		normMat <- normMat/exp(rowMeans(log(normMat)))
+		o <- log(calcNormFactors(cts/normMat)) + log(colSums(cts/normMat))
+		d <- DGEList(cts, group=inputdata$sampleInfo$condition)
+		d$offset <- t(t(log(normMat)) + o)
+	}
 	d$samples$group <- relevel(d$samples$group, ref="CON")
 	dlim <- d[rowSums(cpm(d)>0.5) >= min(table(inputdata$sampleInfo$condition)) - 1,]
 	disp <- estimateDisp(calcNormFactors(dlim), design) #Common dispersion and tagwise dispersions in one run
@@ -457,12 +497,7 @@ exploratoryDataAnalysisedgeR <- function(deg, disp){
 	}
 
 ens2symbol <- function(dearesult, columnsOfInterest, colnames) { #convert ensembl identifiers to gene symbols using 'annotables', select columns and rename
-	if (substr(rownames(dearesult)[1], 1, 4) == 'ENSG') {
-		output <- cbind(gene=row.names(dearesult), as.data.frame(dearesult), stringsAsFactors=FALSE) #To convert the row names (features) to a column in the dataframe.
-		output$symbol=sapply(sapply(strsplit(output$gene,","), function(x) unique(grch37[grch37$ensgene %in% x,"symbol"])), paste, collapse=",") #Comma separated overlapping features are matched to gene symbols and repasted together
-	} else {
-		output <- cbind(gene=row.names(dearesult), as.data.frame(dearesult), symbol='NA')
-	}
+	output <- cbind(gene=row.names(dearesult), as.data.frame(dearesult), symbol='NA')
 	output <- output[,columnsOfInterest]
 	colnames(output) <- colnames
 	return(output)
@@ -544,13 +579,12 @@ makeVennDiagram <- function(set1, set2, set3) {
 
 suppressMessages(library("ggplot2"))
 suppressMessages(library("ggrepel"))
-
 inputdata <- sanityCheck()
 suppressMessages(library("BiocParallel"))
 suppressMessages(library("DESeq2"))
 suppressMessages(library("edgeR"))
 suppressMessages(library("limma"))
-suppressMessages(library("annotables"))
+#suppressMessages(library("annotables"))
 suppressMessages(library("pheatmap"))
 suppressMessages(library("RColorBrewer"))
 suppressMessages(library("dplyr"))
