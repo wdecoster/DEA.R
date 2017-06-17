@@ -4,7 +4,8 @@
 Command line Rscript to perform differential expression analysis using DESeq2, edgeR and limma-voom quick and reproducible. Main use is for human samples, but this could easily get adapted if desired.
 
 ## Features
-- Performs counting using featureCounts  
+- Performs counting using featureCounts (bam input)
+- Can handle salmon quantification
 - Allows specification of covariates  
 - Rigorous checking of input data  
 - Creates various plots  
@@ -20,7 +21,7 @@ with:
 The sample info file contains all information required for the script.  
 #### Mandatory fields
 These fields are mandatory present in the file, header is case sensitive
-- 'file': exact path to bamfile to be used for counting  
+- 'file': exact path to bamfile or quant.sf to be used for counting  
 - 'sample': identifier of the sample to be used  
 - 'condition': main factor on which the differential expression should be performed.   
 The reference level for the field condition should be "CON" (case sensitive).  
