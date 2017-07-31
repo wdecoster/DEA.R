@@ -266,7 +266,7 @@ proc_limma_voom <- function(inputdata) {
 	v <- voom(dge, design=design, normalization="none") #For outliers, use sample quality weights
 	normalizedCounts <- ens2symbol(
 		dearesult=v$E,
-		columnsOfInterest=c("gene", colnames(v$E), "symbol"),
+		columnsOfInterest=c("gene", colnames(v$E)),
 		colnames=c("gene", colnames(v$E), "symbol"))
 	write.table(
 		x=normalizedCounts,
@@ -285,7 +285,7 @@ proc_limma_voom <- function(inputdata) {
 	degTable <- topTable(fit,number=Inf, coef=ncol(design))
 	output <- ens2symbol(
 		dearesult=degTable[order(degTable$adj.P.Val),],
-		columnsOfInterest=c('gene', 'logFC', 'P.Value', 'adj.P.Val', 'symbol'),
+		columnsOfInterest=c('gene', 'logFC', 'P.Value', 'adj.P.Val'),
 		colnames=c("gene", "logFC", "pvalue", "padj", "symbol"))
 	makeVolcanoPlot(
 		input=mutate(output, sig=ifelse(output$padj<0.1, "padj<0.1", "Not Sig")),
@@ -353,7 +353,7 @@ exploratoryDataAnalysisDESeq <- function(dds) {
 	rownames(rlddf) <- names(dds)
 	rlddf <- ens2symbol(
 		dearesult=rlddf,
-		columnsOfInterest=c("gene", colnames(inputdata$counts), "symbol"),
+		columnsOfInterest=c("gene", colnames(inputdata$counts)),
 		colnames=c("gene", colnames(inputdata$counts), "symbol"))
 	makeHeatMap(normcounts, "DESeq2", paste(rld$condition, rld$sampleR, sep="-"))
 	#makePCA(normcounts, "DESeq2")
@@ -378,7 +378,7 @@ getDESeqDEAbyContrast <- function(dds, group) {
 	summary(res)
 	output <- ens2symbol(
 		dearesult=res[order(res$padj),],
-		columnsOfInterest=c("gene", "log2FoldChange", "lfcMLE", "pvalue", "padj", "symbol"),
+		columnsOfInterest=c("gene", "log2FoldChange", "lfcMLE", "pvalue", "padj"),
 		colnames=c("gene", "logFC", "logFC-unshrunken", "pvalue", "padj", "symbol"))
 	write.table(
 		x=as.data.frame(output),
@@ -409,6 +409,7 @@ getDESeqDEAbyContrast <- function(dds, group) {
 	return(DEG$gene)
 	}
 
+
 proc_edger <- function(inputdata) {
 	design <- model.matrix(inputdata$design, data=inputdata$sampleInfo)
 	if (inputdata$source == "bam") {
@@ -432,7 +433,7 @@ proc_edger <- function(inputdata) {
 	exploratoryDataAnalysisedgeR(deg, disp)
 	output <- ens2symbol(
 		dearesult=topTags(deg, n=nrow(deg$counts))$table,
-		columnsOfInterest=c('gene', 'logFC', 'PValue', 'FDR', 'symbol'),
+		columnsOfInterest=c('gene', 'logFC', 'PValue', 'FDR'),
 		colnames=c("gene", "logFC", "pvalue", "FDR", "symbol"))
 	DEG <- subset(output, FDR < 0.1)
 	write.table(
@@ -456,6 +457,7 @@ proc_edger <- function(inputdata) {
 	return(DEG$gene)
 	}
 
+
 exploratoryDataAnalysisedgeR <- function(deg, disp){
 	jpeg(
 		filename='edgeR_MAplot.jpeg',
@@ -477,7 +479,7 @@ exploratoryDataAnalysisedgeR <- function(deg, disp){
 	normalizedCounts <- cpm(disp)
 	normalizedCounts_named <- ens2symbol(
 		dearesult=normalizedCounts,
-		columnsOfInterest=c("gene", colnames(normalizedCounts), "symbol"),
+		columnsOfInterest=c("gene", colnames(normalizedCounts)),
 		colnames=c("gene", colnames(normalizedCounts), "symbol"))
 	#makePCA(normalizedCounts)
 	write.table(
@@ -496,9 +498,17 @@ exploratoryDataAnalysisedgeR <- function(deg, disp){
 		quote=FALSE)
 	}
 
-ens2symbol <- function(dearesult, columnsOfInterest, colnames) { #convert ensembl identifiers to gene symbols using 'annotables', select columns and rename
-	output <- cbind(gene=row.names(dearesult), as.data.frame(dearesult), symbol='NA')
-	output <- output[,columnsOfInterest]
+
+ens2symbol <- function(dearesult, columnsOfInterest, colnames) { #convert ensembl identifiers to gene symbols using biomaRt, select columns and rename
+	mart = useMart("ensembl", dataset="hsapiens_gene_ensembl")
+	ann <- getBM(
+	    attributes=c("ensembl_gene_id", "hgnc_symbol"),
+	    filters="ensembl_gene_id",
+	    values=row.names(dearesult),
+	    mart=mart)
+	colnames(ann) = c("gene", "symbol")
+	output <- cbind(gene=row.names(dearesult), as.data.frame(dearesult), stringsAsFactors=FALSE)
+	output <- output[,columnsOfInterest] %>% dplyr::left_join(ann, by="gene")
 	colnames(output) <- colnames
 	return(output)
 	}
@@ -584,12 +594,14 @@ suppressMessages(library("BiocParallel"))
 suppressMessages(library("DESeq2"))
 suppressMessages(library("edgeR"))
 suppressMessages(library("limma"))
-#suppressMessages(library("annotables"))
 suppressMessages(library("pheatmap"))
 suppressMessages(library("RColorBrewer"))
 suppressMessages(library("dplyr"))
 suppressMessages(library("genefilter"))
 suppressMessages(library("VennDiagram"))
+suppressMessages(library("biomaRt"))
+
+
 
 DEG_edger <- proc_edger(inputdata)
 DEG_limma <- proc_limma_voom(inputdata)
