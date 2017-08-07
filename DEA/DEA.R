@@ -73,6 +73,7 @@ makedesign <- function(sampleInfo) {
 checkSampleInfo <- function(sampleInfoFile) {
 	if (!file.exists(sampleInfoFile)) {giveError("ARGUMENT ERROR:\nFile provided as sample info file doesn't exist or path is incorrect.") }
 	sampleInfo <- read.table(sampleInfoFile, header=T, stringsAsFactors=F)
+	names(sampleInfo) <- tolower(names(sampleInfo))
 	if (!"condition" %in% names(sampleInfo)) {
 		giveError("SAMPLEINFO ERROR:\nCould not find required field <condition> in sample info file.")}
 	if (min(table(sampleInfo$condition)) < 3) {
@@ -509,6 +510,7 @@ ens2symbol <- function(dearesult, columnsOfInterest, colnames) { #convert ensemb
 	colnames(ann) = c("gene", "symbol")
 	output <- cbind(gene=row.names(dearesult), as.data.frame(dearesult), stringsAsFactors=FALSE)
 	output <- output[,columnsOfInterest] %>% dplyr::left_join(ann, by="gene")
+	output$symbol[which(output$symbol == "")] = "NA"
 	colnames(output) <- colnames
 	return(output)
 	}
