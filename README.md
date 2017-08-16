@@ -56,7 +56,8 @@ Command line interface to [Enrichr](http://amp.pharm.mssm.edu/Enrichr/). I am no
 Input is a list of gene symbols, either using a file or on stdin.
 
 #### Usage
-usage: enrichr-cli.py [-h] [-g GENES] [-d [DATABASES [DATABASES ...]]] [-w] [-p PREFIX] [-o OUTDIR]
+```
+enrichr-cli.py [-h] [-g GENES] [-d [DATABASES [DATABASES ...]]] [-w] [-p PREFIX] [-o OUTDIR]
 
 mandatory argument:  
 -g GENES, --genes GENES
@@ -71,12 +72,15 @@ optional arguments:
                         Fixed prefix to name the output files with  
   -o OUTDIR, --outdir OUTDIR
                         Output directory to store files in. Will be created if it doesn't exist.  
+```
 
 ## SimpleViolin.R
 Script to create violin plots of expression data
 
 #### Usage
+```
 SimpleViolin.R countsfile.txt sample_info_file.txt targets.  
+```
 Targets are either  
 - A comma separated list of gene symbols
 - A differential expression result, of which the top 10 will be taken
