@@ -195,52 +195,29 @@ countStats <- function(statdat, samples, inputdata, counts) {
 	if (inputdata$gender) {	genderPlots(inputdata$sampleInfo$gender, counts) }
 	}
 
-is.between <- function(x, a) {(x - a[1])  *  (a[2] - x) > 0}
-
-addLabel <- function(data) {
-	mVal <- data[data$gender=="m",'gene']
-	mQuantil <- quantile(mVal, c(.10, .90))
-	fVal <- data[data$gender=="f",'gene']
-	fQuantil <- quantile(fVal, c(.10, .90))
-	InRange <- c(rownames(data[data$gender == "m",])[is.between(mVal, fQuantil)], rownames(data[data$gender == "f",])[is.between(fVal, mQuantil)])
-	data$sample <- rownames(data)
-	data$label <- ifelse(rownames(data) %in% InRange, 1, 0)
-	return(data)
-	}
-
 genderPlots <- function(genders, counts) {
-	# Making gender specific plots based on https://www.ncbi.nlm.nih.gov/pubmed/23829492
-	genderSpecificGenes = data.frame(
-		ens = c('ENSG00000129824', 'ENSG00000198692', 'ENSG00000067048', 'ENSG00000012817', 'ENSG00000229807'),
-		symbol = c('RPS4Y1', 'EIF1AY', 'DDX3Y', 'KDM5D', 'XIST'),
-		stringsAsFactors = F)
-	genderSpecificCounts <- t(counts[rownames(counts) %in% genderSpecificGenes$ens,])
-	for (gene in genderSpecificGenes$ens) {
-		data = addLabel(data.frame(gene = genderSpecificCounts[,gene], gender = genders))
-		symbol = genderSpecificGenes[genderSpecificGenes$ens == gene, "symbol"]
-		p <- ggplot(data, aes(x=gender, y=gene)) +
-			geom_violin() +
-			geom_dotplot(
-				binaxis='y',
-				stackdir='center',
-				dotsize=0.2,
-				binwidth=0.025,
-				position="dodge") +
-			ggtitle(paste("Reads in gender specific gene", symbol, sep=" ")) +
-			theme(axis.title.x = element_blank(),
-				axis.ticks.x=element_blank(),
-				panel.grid.major.x = element_blank(),
-				plot.title = element_text(hjust = 0.5),
-				legend.position="none") +
-			ylab("Raw number of reads") +
-			geom_label_repel(
-				data=data[data$label == 1,],
-				aes(label=sample),
-				point.padding=unit(1, "lines")
-				)
-		suppressMessages(ggsave(paste("GenderSpecificGene", symbol , "jpeg", sep="."), p))
-			}
+	# Making orthogonal gender-specific plot based on genes from https://www.ncbi.nlm.nih.gov/pubmed/23829492
+	maleGenes = c('ENSG00000129824', 'ENSG00000198692', 'ENSG00000067048', 'ENSG00000012817')
+	femaleGenes = c('ENSG00000229807')
+	data <- data.frame(
+		m=rowSums(t(counts[rownames(counts) %in% maleGenes,])),
+		f=counts[rownames(counts) %in% femaleGenes,],
+		gender=genders,
+		name=colnames(counts))
+	p <- ggplot(data = data, aes(x=f, y=m, colour=gender)) +
+		geom_point() +
+		ggtitle("Reads in gender specific genes") +
+		theme(axis.title.x = element_blank(),
+			axis.ticks.x=element_blank(),
+			panel.grid.major.x = element_blank(),
+			plot.title = element_text(hjust = 0.5),
+			legend.position="none") +
+		ylab("Raw number of reads in male specific genes") +
+		xlab("Raw number of reads in female specific gene") +
+		geom_text_repel(aes(label=name), size=3)
+		suppressMessages(ggsave("GenderSpecificExpression.jpeg", p))
 		}
+
 
 citations <- function() {
 	cat("Packages used by this script with their citation:\n")
@@ -353,11 +330,11 @@ exploratoryDataAnalysisDESeq <- function(dds) {
 	rlddf <- data.frame(normcounts)
 	rownames(rlddf) <- names(dds)
 	rlddf <- ens2symbol(
-		dearesult=rlddf,
-		columnsOfInterest=c("gene", colnames(inputdata$counts)),
-		colnames=c("gene", colnames(inputdata$counts), "symbol"))
+	 	dearesult=rlddf,
+	 	columnsOfInterest=c("gene", colnames(inputdata$counts)),
+	 	colnames=c("gene", colnames(inputdata$counts), "symbol"))
 	makeHeatMap(normcounts, "DESeq2", paste(rld$condition, rld$sampleR, sep="-"))
-	#makePCA(normcounts, "DESeq2")
+	makePCA(normcounts, "DESeq2")
 	write.table(
 		x=as.data.frame(rlddf),
 		file="DESeq2_rlognormalizedcounts.txt",
@@ -509,6 +486,8 @@ ens2symbol <- function(dearesult, columnsOfInterest, colnames) { #convert ensemb
 	    mart=mart)
 	colnames(ann) = c("gene", "symbol")
 	output <- cbind(gene=row.names(dearesult), as.data.frame(dearesult), stringsAsFactors=FALSE)
+	cat(str(ann))
+	cat(str(output))
 	output <- output[,columnsOfInterest] %>% dplyr::left_join(ann, by="gene")
 	output$symbol[which(output$symbol == "")] = "NA"
 	colnames(output) <- colnames
