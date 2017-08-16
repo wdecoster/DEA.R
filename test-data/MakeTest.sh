@@ -14,10 +14,8 @@ mkdir MakeTestDir || { echo >&2 "Could not make working directory, do you have w
 cd MakeTestDir
 
 echo "Testing if all required software is available and in the path..."
-hash fastq-dump 2>/dev/null || { echo >&2 "Dependency Error: MakeTest requires fastq-dump to be installed and in the path."; exit 1; }
 hash STAR 2>/dev/null || { echo >&2 "Dependency Error: MakeTest requires STAR to be installed and in the path."; exit 1; }
 hash wget 2>/dev/null || { echo >&2 "Dependency Error: MakeTest requires wget to be installed and in the path."; exit 1; }
-hash gunzip 2>/dev/null || { echo >&2 "Dependency Error: MakeTest requires gunzip to be installed and in the path."; exit 1; }
 echo -e "It seems all required software is present.\n"
 
 echo "Downloading reference genome and annotation from Ensembl..."
@@ -29,12 +27,16 @@ GTF=$(readlink -f annotation.gtf)
 REF=$(readlink -f genome.fa)
 echo -e "Reference genome and annotation downloaded.\n"
 
-echo "Downloading fastq files for test data from SRA. This will take a while..."
-for SRR in SRR1039508 SRR1039509 SRR1039512 SRR1039513 SRR1039516 SRR1039517 SRR1039520 SRR1039521
-do
-fastq-dump --split-3 -X 1000000 $SRR
-gzip ${SRR}*.fastq
-done
+
+echo "Downloading fastq files for test data from ENA. This will take a while..."
+wget -nv ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR103/008/SRR1039508/SRR1039508_?.fastq.gz
+wget -nv ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR103/009/SRR1039509/SRR1039509_?.fastq.gz
+wget -nv ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR103/002/SRR1039512/SRR1039512_?.fastq.gz
+wget -nv ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR103/003/SRR1039513/SRR1039513_?.fastq.gz
+wget -nv ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR103/006/SRR1039516/SRR1039516_?.fastq.gz
+wget -nv ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR103/007/SRR1039517/SRR1039517_?.fastq.gz
+wget -nv ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR103/000/SRR1039520/SRR1039520_?.fastq.gz
+wget -nv ftp://ftp.sra.ebi.ac.uk/vol1/fastq/SRR103/001/SRR1039521/SRR1039521_?.fastq.gz
 echo -e "Fastq files downloaded.\n"
 
 echo "Building STAR genome index..."
