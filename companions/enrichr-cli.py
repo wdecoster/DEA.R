@@ -48,11 +48,11 @@ def senddata(genes):
 	Send the input gene list to enrichr, return query
 	Call function to check how many genes were recognized
 	'''
-	input = {
+	inputgenes = {
 		'list': (None, '\n'.join(genes)),
 		'description': (None, 'enrichR.py query')
 		}
-	response = requests.post('http://amp.pharm.mssm.edu/Enrichr/addList', files=input)
+	response = requests.post('http://amp.pharm.mssm.edu/Enrichr/addList', files=inputgenes)
 	if not response.ok:
 		raise Exception('Error uploading gene list')
 	queryId = json.loads(response.text)['userListId']
@@ -132,6 +132,6 @@ if __name__ == '__main__':
 	args = getArgs()
 	databases = readDBfile()
 	genelist = procesinput()
-	id = senddata(genelist)
+	enrichr_id = senddata(genelist)
 	for db in whichdb():
-		getresults(id, db)
+		getresults(enrichr_id, db)
