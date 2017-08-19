@@ -13,14 +13,13 @@ sanityCheck <- function() {
 	arguments <- unlist(strsplit(commandArgs(trailingOnly = TRUE)," "))
 	if (length(arguments) == 0) {usage()}
 	if (length(arguments) != 2 && ! arguments[1] %in% c("install", "citations", "version", "--version", "-v")) { usage() }
-	inputdata <- list()
 	if (tolower(arguments[1]) == "install") { install() }
 	if (tolower(arguments[1]) == "citations") { citations() }
 	if (tolower(arguments[1]) %in% c("version", "--version", "-v")) {
 		cat(paste("\nDEA.R version", version, "\n\n", sep=" "))
 		quit()
 		}
-	library(parallel)
+	inputdata <- list()
 	inputdata$cores <- min(detectCores() - 1, 12)
 	inputdata$annotation <- arguments[2]
 	if (! file.exists(inputdata$annotation)) {giveError("FATAL: Could not find the annotation file, check if path is correct.")	}
@@ -116,6 +115,7 @@ checkSampleInfo <- function(sampleInfoFile) {
 	return(sampleInfo)
 	}
 
+
 getCountsFromSalmon <- function(inputdata) {
 	suppressMessages(library("tximport"))
 	suppressMessages(library("readr"))
@@ -130,8 +130,10 @@ getCountsFromSalmon <- function(inputdata) {
 			file = "Tximport.log")
 		)
 	save(counts, file="Salmon_Quantification.RData")
+	if (inputdata$gender) {	genderPlots(inputdata$sampleInfo$gender, counts$A$counts, inputdata$sampleInfo$sample) }
 	return(counts)
 	}
+
 
 getCountsFromBam <- function(inputdata) {
 	cat("Performing counting with featureCounts from Rsubread.\n")
@@ -164,6 +166,7 @@ getCountsFromBam <- function(inputdata) {
 	return(counts)
 	}
 
+
 countStats <- function(statdat, samples, inputdata, counts) {
 	# Creating relative stats by dividing each number by the sum of Assigned, Unassigned_Ambiguity, Unassigned_NoFeaturesUnassigned_NoFeatures
 	relativeStats <- cbind(
@@ -192,18 +195,29 @@ countStats <- function(statdat, samples, inputdata, counts) {
 		quote=F,
 		sep="\t",
 		row.names=F)
-	if (inputdata$gender) {	genderPlots(inputdata$sampleInfo$gender, counts) }
+	if (inputdata$gender) {	genderPlots(inputdata$sampleInfo$gender, counts, inputdata$sampleInfo$sample) }
 	}
 
-genderPlots <- function(genders, counts) {
+
+genderPlots <- function(genders, counts, samples) {
 	# Making orthogonal gender-specific plot based on genes from https://www.ncbi.nlm.nih.gov/pubmed/23829492
 	maleGenes = c('ENSG00000129824', 'ENSG00000198692', 'ENSG00000067048', 'ENSG00000012817')
 	femaleGenes = c('ENSG00000229807')
+	if (any(maleGenes %in% rownames(counts))){
+		maleCounts <- rowSums(t(counts[rownames(counts) %in% maleGenes,]))
+	} else {
+		maleCounts <- rep(0, length(genders))
+	}
+	if (any(femaleGenes %in% rownames(counts))){
+		femaleCounts <- counts[rownames(counts) %in% femaleGenes,]
+	} else {
+		femaleCounts <- rep(0, length(genders))
+	}
 	data <- data.frame(
-		m=rowSums(t(counts[rownames(counts) %in% maleGenes,])),
-		f=counts[rownames(counts) %in% femaleGenes,],
+		m=maleCounts,
+		f=femaleCounts,
 		gender=genders,
-		name=colnames(counts))
+		name=samples)
 	p <- ggplot(data = data, aes(x=f, y=m, colour=gender)) +
 		geom_point() +
 		ggtitle("Reads in gender specific genes") +
@@ -570,6 +584,7 @@ makeVennDiagram <- function(set1, set2, set3) {
 
 suppressMessages(library("ggplot2"))
 suppressMessages(library("ggrepel"))
+suppressMessages(library("parallel"))
 inputdata <- sanityCheck()
 suppressMessages(library("BiocParallel"))
 suppressMessages(library("DESeq2"))
