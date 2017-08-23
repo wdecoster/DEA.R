@@ -7,7 +7,7 @@
 
 #Author: wdecoster
 #Twitter: @wouter_decoster
-version="0.8.0"
+version="0.8.1"
 
 sanityCheck <- function() {
 	arguments <- unlist(strsplit(commandArgs(trailingOnly = TRUE)," "))
@@ -348,7 +348,7 @@ exploratoryDataAnalysisDESeq <- function(dds) {
 	 	columnsOfInterest=c("gene", colnames(inputdata$counts)),
 	 	colnames=c("gene", colnames(inputdata$counts), "symbol"))
 	makeHeatMap(normcounts, "DESeq2", paste(rld$condition, rld$sampleR, sep="-"))
-	makePCA(normcounts, "DESeq2")
+	#makePCA(normcounts, "DESeq2")
 	write.table(
 		x=as.data.frame(rlddf),
 		file="DESeq2_rlognormalizedcounts.txt",
@@ -498,15 +498,15 @@ ens2symbol <- function(dearesult, columnsOfInterest, colnames) { #convert ensemb
 	    filters="ensembl_gene_id",
 	    values=row.names(dearesult),
 	    mart=mart)
-	colnames(ann) = c("gene", "symbol")
-	output <- cbind(gene=row.names(dearesult), as.data.frame(dearesult), stringsAsFactors=FALSE)
-	cat(str(ann))
-	cat(str(output))
-	output <- output[,columnsOfInterest] %>% dplyr::left_join(ann, by="gene")
+    ann_dedup = data.frame(gene=unique(ann$ensembl_gene_id), stringsAsFactors=FALSE)
+    ann_dedup$symbol = apply(ann_dedup, 1, function(x) paste(ann[ann$ensembl_gene_id == x, "hgnc_symbol"], collapse=','))
+	output <- cbind(gene=row.names(dearesult), as.data.frame(dearesult), stringsAsFactors=FALSE)[,columnsOfInterest] %>%
+                dplyr::left_join(ann_dedup, by="gene")
 	output$symbol[which(output$symbol == "")] = "NA"
 	colnames(output) <- colnames
 	return(output)
 	}
+
 
 makeHeatMap <- function(normcounts, proc, names){
 	sampleDists <- dist(t(normcounts))
