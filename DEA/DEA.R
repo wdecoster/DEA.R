@@ -530,12 +530,12 @@ makeHeatMap <- function(normcounts, proc, names){
 
 
 makePCA <- function(normcounts, proc, sampleInfo) {
-    covariates <- names(sampleInfo)[!names(sampleInfo) %in% c("sample", "file", "sequencing", "strandedness")]
+    covariates <- names(sampleInfo)[!names(sampleInfo) %in% c("sample", "file", "sequencing", "strandedness", "condition")]
     rv <- rowVars(normcounts)
 	pca <- prcomp(t(normcounts[order(rv, decreasing = TRUE)[seq_len(min(500, length(rv)))], ]))
 	makeScree(pca, proc)
     for (cov in covariates) {
-        a <- autoplot(pca, data=sampleInfo, colour=cov, shape=FALSE, label.size=3)
+        a <- autoplot(pca, data=sampleInfo, colour='condition', shape=cov, label.size=3)
         suppressMessages(ggsave(paste(proc, 'PCAplot', cov, 'normalizedcounts.jpeg', sep="_"), a))
         }
 	}
