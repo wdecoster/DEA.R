@@ -272,7 +272,7 @@ proc_limma_voom <- function(inputdata) {
 		sep="\t",
 		row.names=FALSE,
 		quote=FALSE)
-	#makePCA(vwts$E, "Limma-voom")
+	makePCA(v$E, "Limma-voom", inputdata$sampleInfo)
 	fit <- eBayes(lmFit(v))
 	degTable <- topTable(fit,number=Inf, coef=ncol(design))
 	output <- ens2symbol(
@@ -348,7 +348,7 @@ exploratoryDataAnalysisDESeq <- function(dds) {
 	 	columnsOfInterest=c("gene", colnames(inputdata$counts)),
 	 	colnames=c("gene", colnames(inputdata$counts), "symbol"))
 	makeHeatMap(normcounts, "DESeq2", paste(rld$condition, rld$sampleR, sep="-"))
-	#makePCA(normcounts, "DESeq2")
+	makePCA(normcounts, "DESeq2", inputdata$sampleInfo)
 	write.table(
 		x=as.data.frame(rlddf),
 		file="DESeq2_rlognormalizedcounts.txt",
@@ -473,7 +473,7 @@ exploratoryDataAnalysisedgeR <- function(deg, disp){
 		dearesult=normalizedCounts,
 		columnsOfInterest=c("gene", colnames(normalizedCounts)),
 		colnames=c("gene", colnames(normalizedCounts), "symbol"))
-	#makePCA(normalizedCounts)
+	makePCA(normalizedCounts, "edgeR", inputdata$sampleInfo)
 	write.table(
 		x=normalizedCounts_named,
 		file="edgeR_normalizedCounts_cpm.txt",
@@ -528,25 +528,27 @@ makeHeatMap <- function(normcounts, proc, names){
 	dev.off()
 	}
 
-makePCA <- function(normcounts, proc) {
-	rv <- rowVars(normcounts)
-	select <- order(rv, decreasing = TRUE)[seq_len(min(500, length(rv)))]
-	pca <- prcomp(normcounts[select, ])
-	percentVar <- pca$sdev^2 / sum( pca$sdev^2 )
-	scree_plot <- data.frame(percentVar)
-	scree_plot[1:10,2]<- c(1:10)
-	colnames(scree_plot)<-c("variance","component_number")
-	scree <- ggplot(scree_plot[1:10,], mapping=aes(x=component_number, y=variance)) +
-		geom_bar(stat="identity")
-	suppressMessages(ggsave(paste(proc, 'PCA_scree.jpeg', sep="_"), scree, device="jpeg"))
-	pcadata <- plotPCA(normcounts, intgroup=c("condition"), returnData=TRUE)
-	percentVar <- round(100 * attr(pcadata, "percentVar"))
-	pca <- ggplot(pcadata, aes(PC1, PC2, color=condition, shape=condition)) +
-		geom_point(size=3) +
-		xlab(paste0("PC1: ",percentVar[1],"% variance")) +
-		ylab(paste0("PC2: ",percentVar[2],"% variance"))
-	suppressMessages(ggsave(paste(proc, 'PCAplot_normalizedcounts.jpeg', sep="_"), pca, device = "jpeg"))
+
+makePCA <- function(normcounts, proc, sampleInfo) {
+    covariates <- names(sampleInfo)[!names(sampleInfo) %in% c("sample", "file", "sequencing", "strandedness")]
+    rv <- rowVars(normcounts)
+	pca <- prcomp(t(normcounts[order(rv, decreasing = TRUE)[seq_len(min(500, length(rv)))], ]))
+	makeScree(pca, proc)
+    for (cov in covariates) {
+        a <- autoplot(pca, data=sampleInfo, colour=cov, shape=FALSE, label.size=3)
+        suppressMessages(ggsave(paste(proc, 'PCAplot', cov, 'normalizedcounts.jpeg', sep="_"), a))
+        }
 	}
+
+
+makeScree <- function(pca, proc){
+    scree_plot <- data.frame(pca$sdev^2 / sum( pca$sdev^2 ))
+    scree_plot[1:10,2]<- c(1:10)
+    colnames(scree_plot)<-c("variance","component_number")
+    scree <- ggplot(scree_plot[1:10,], mapping=aes(x=component_number, y=variance)) + geom_bar(stat="identity")
+	suppressMessages(ggsave(paste(proc, 'PCA_scree.jpeg', sep="_"), scree, device="jpeg"))
+    }
+
 
 makeVolcanoPlot <- function(input, toolname, names) {
 	colours = c("red", "black")
@@ -561,6 +563,7 @@ makeVolcanoPlot <- function(input, toolname, names) {
 		volc + geom_text_repel(data=head(input, 20), aes(label=gene)) }
 	suppressMessages(ggsave(paste(toolname, "Volcanoplot.jpeg", sep="_"), device="jpeg"))
 	}
+
 
 makeVennDiagram <- function(set1, set2, set3) {
 	jpeg(
@@ -582,10 +585,12 @@ makeVennDiagram <- function(set1, set2, set3) {
 	dev.off()
 	}
 
+
 suppressMessages(library("ggplot2"))
 suppressMessages(library("ggrepel"))
 suppressMessages(library("parallel"))
 inputdata <- sanityCheck()
+suppressMessages(library("ggfortify"))
 suppressMessages(library("BiocParallel"))
 suppressMessages(library("DESeq2"))
 suppressMessages(library("edgeR"))
@@ -593,9 +598,10 @@ suppressMessages(library("limma"))
 suppressMessages(library("pheatmap"))
 suppressMessages(library("RColorBrewer"))
 suppressMessages(library("dplyr"))
-suppressMessages(library("genefilter"))
+suppressMessages(library("genefilter")) #for rowVars
 suppressMessages(library("VennDiagram"))
 suppressMessages(library("biomaRt"))
+
 
 
 
