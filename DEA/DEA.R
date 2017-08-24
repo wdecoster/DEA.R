@@ -117,9 +117,9 @@ checkSampleInfo <- function(sampleInfoFile) {
 
 
 getCountsFromSalmon <- function(inputdata) {
-	suppressMessages(library("tximport"))
-	suppressMessages(library("readr"))
-	suppressMessages(library("EnsDb.Hsapiens.v86"))
+	suppressPackageStartupMessages(library("tximport"))
+	suppressPackageStartupMessages(library("readr"))
+	suppressPackageStartupMessages(library("EnsDb.Hsapiens.v86"))
 	txdf <- transcripts(EnsDb.Hsapiens.v86, return.type="DataFrame")
 	tx2gene <- as.data.frame(txdf[,c("tx_id","gene_id")])
 	counts <- list()
@@ -137,7 +137,7 @@ getCountsFromSalmon <- function(inputdata) {
 
 getCountsFromBam <- function(inputdata) {
 	cat("Performing counting with featureCounts from Rsubread.\n")
-	suppressMessages(library(Rsubread))
+	suppressPackageStartupMessages(library(Rsubread))
 	capture.output(
 		counts <- featureCounts(inputdata$sampleInfo$file,
 			annot.ext=inputdata$annotation,
@@ -201,8 +201,8 @@ countStats <- function(statdat, samples, inputdata, counts) {
 
 genderPlots <- function(genders, counts, samples) {
 	# Making orthogonal gender-specific plot based on genes from https://www.ncbi.nlm.nih.gov/pubmed/23829492
-	maleGenes = c('ENSG00000129824', 'ENSG00000198692', 'ENSG00000067048', 'ENSG00000012817')
-	femaleGenes = c('ENSG00000229807')
+	maleGenes <- c('ENSG00000129824', 'ENSG00000198692', 'ENSG00000067048', 'ENSG00000012817')
+	femaleGenes <- c('ENSG00000229807')
 	if (any(maleGenes %in% rownames(counts))){
 		maleCounts <- rowSums(t(counts[rownames(counts) %in% maleGenes,]))
 	} else {
@@ -236,7 +236,7 @@ genderPlots <- function(genders, counts, samples) {
 citations <- function() {
 	cat("Packages used by this script with their citation:\n")
 	for (package in c("ggplot2", "ggrepel", "DESeq2", "edgeR", "limma", "pheatmap", "RColorBrewer", "dplyr")){
-		suppressMessages(library(package, character.only = TRUE))
+		suppressPackageStartupMessages(library(package, character.only = TRUE))
 		cat(paste(package, ":\n", sep=""))
 		cat(unlist(citation(package)))
 		cat('\n\n')
@@ -247,6 +247,7 @@ citations <- function() {
 		}
 	quit()
 	}
+
 
 proc_limma_voom <- function(inputdata) {
 	design <- model.matrix(inputdata$design, data=inputdata$sampleInfo)
@@ -492,17 +493,17 @@ exploratoryDataAnalysisedgeR <- function(deg, disp){
 
 
 ens2symbol <- function(dearesult, columnsOfInterest, colnames) { #convert ensembl identifiers to gene symbols using biomaRt, select columns and rename
-	mart = useMart("ensembl", dataset="hsapiens_gene_ensembl")
+	mart <- useMart("ensembl", dataset="hsapiens_gene_ensembl")
 	ann <- getBM(
 	    attributes=c("ensembl_gene_id", "hgnc_symbol"),
 	    filters="ensembl_gene_id",
 	    values=row.names(dearesult),
 	    mart=mart)
-    ann_dedup = data.frame(gene=unique(ann$ensembl_gene_id), stringsAsFactors=FALSE)
-    ann_dedup$symbol = apply(ann_dedup, 1, function(x) paste(ann[ann$ensembl_gene_id == x, "hgnc_symbol"], collapse=','))
+    ann_dedup <- data.frame(gene=unique(ann$ensembl_gene_id), stringsAsFactors=FALSE)
+    ann_dedup$symbol <- apply(ann_dedup, 1, function(x) paste(ann[ann$ensembl_gene_id == x, "hgnc_symbol"], collapse=','))
 	output <- cbind(gene=row.names(dearesult), as.data.frame(dearesult), stringsAsFactors=FALSE)[,columnsOfInterest] %>%
                 dplyr::left_join(ann_dedup, by="gene")
-	output$symbol[which(output$symbol == "")] = "NA"
+	output$symbol[which(output$symbol == "")] <- "NA"
 	colnames(output) <- colnames
 	return(output)
 	}
@@ -551,9 +552,9 @@ makeScree <- function(pca, proc){
 
 
 makeVolcanoPlot <- function(input, toolname, names) {
-	colours = c("red", "black")
+	colours <- c("red", "black")
 	names(colours) = names
-	volc = ggplot(input, aes(logFC, -log10(pvalue))) +
+	volc <- ggplot(input, aes(logFC, -log10(pvalue))) +
 	scale_color_manual(values=colours) +
 		geom_point(aes(col=sig)) +
 		ggtitle(toolname)
@@ -586,21 +587,21 @@ makeVennDiagram <- function(set1, set2, set3) {
 	}
 
 
-suppressMessages(library("ggplot2"))
-suppressMessages(library("ggrepel"))
-suppressMessages(library("parallel"))
+suppressPackageStartupMessages(library("ggplot2"))
+suppressPackageStartupMessages(library("ggrepel"))
+suppressPackageStartupMessages(library("parallel"))
 inputdata <- sanityCheck()
-suppressMessages(library("ggfortify"))
-suppressMessages(library("BiocParallel"))
-suppressMessages(library("DESeq2"))
-suppressMessages(library("edgeR"))
-suppressMessages(library("limma"))
-suppressMessages(library("pheatmap"))
-suppressMessages(library("RColorBrewer"))
-suppressMessages(library("dplyr"))
-suppressMessages(library("genefilter")) #for rowVars
-suppressMessages(library("VennDiagram"))
-suppressMessages(library("biomaRt"))
+suppressPackageStartupMessages(library("ggfortify"))
+suppressPackageStartupMessages(library("BiocParallel"))
+suppressPackageStartupMessages(library("DESeq2"))
+suppressPackageStartupMessages(library("edgeR"))
+suppressPackageStartupMessages(library("limma"))
+suppressPackageStartupMessages(library("pheatmap"))
+suppressPackageStartupMessages(library("RColorBrewer"))
+suppressPackageStartupMessages(library("dplyr"))
+suppressPackageStartupMessages(library("genefilter")) #for rowVars
+suppressPackageStartupMessages(library("VennDiagram"))
+suppressPackageStartupMessages(library("biomaRt"))
 
 
 
