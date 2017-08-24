@@ -567,24 +567,24 @@ makeVennDiagram <- function(set1, set2, set3) {
 	}
 
 
+suppressPackageStartupMessages(library("BiocParallel"))
+suppressPackageStartupMessages(library("biomaRt"))
+suppressPackageStartupMessages(library("DESeq2"))
+suppressPackageStartupMessages(library("dplyr"))
+suppressPackageStartupMessages(library("edgeR"))
+suppressPackageStartupMessages(library("EnsDb.Hsapiens.v86"))
+suppressPackageStartupMessages(library("genefilter")) #for rowVars
 suppressPackageStartupMessages(library("ggplot2"))
 suppressPackageStartupMessages(library("ggrepel"))
-suppressPackageStartupMessages(library("parallel"))
 suppressPackageStartupMessages(library("ggfortify"))
-suppressPackageStartupMessages(library("BiocParallel"))
-suppressPackageStartupMessages(library("DESeq2"))
-suppressPackageStartupMessages(library("edgeR"))
 suppressPackageStartupMessages(library("limma"))
+suppressPackageStartupMessages(library("parallel"))
 suppressPackageStartupMessages(library("pheatmap"))
 suppressPackageStartupMessages(library("RColorBrewer"))
-suppressPackageStartupMessages(library("dplyr"))
-suppressPackageStartupMessages(library("genefilter")) #for rowVars
-suppressPackageStartupMessages(library("VennDiagram"))
-suppressPackageStartupMessages(library("biomaRt"))
-suppressPackageStartupMessages(library("tximport"))
 suppressPackageStartupMessages(library("readr"))
-suppressPackageStartupMessages(library("EnsDb.Hsapiens.v86"))
 suppressPackageStartupMessages(library("Rsubread"))
+suppressPackageStartupMessages(library("tximport"))
+suppressPackageStartupMessages(library("VennDiagram"))
 
 inputdata <- sanityCheck()
 
