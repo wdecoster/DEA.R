@@ -117,9 +117,6 @@ checkSampleInfo <- function(sampleInfoFile) {
 
 
 getCountsFromSalmon <- function(inputdata) {
-	suppressPackageStartupMessages(library("tximport"))
-	suppressPackageStartupMessages(library("readr"))
-	suppressPackageStartupMessages(library("EnsDb.Hsapiens.v86"))
 	txdf <- transcripts(EnsDb.Hsapiens.v86, return.type="DataFrame")
 	tx2gene <- as.data.frame(txdf[,c("tx_id","gene_id")])
 	counts <- list()
@@ -137,7 +134,6 @@ getCountsFromSalmon <- function(inputdata) {
 
 getCountsFromBam <- function(inputdata) {
 	cat("Performing counting with featureCounts from Rsubread.\n")
-	suppressPackageStartupMessages(library(Rsubread))
 	capture.output(
 		counts <- featureCounts(inputdata$sampleInfo$file,
 			annot.ext=inputdata$annotation,
@@ -231,22 +227,6 @@ genderPlots <- function(genders, counts, samples) {
 		geom_text_repel(aes(label=name), size=3)
 		suppressMessages(ggsave("GenderSpecificExpression.jpeg", p))
 		}
-
-
-citations <- function() {
-	cat("Packages used by this script with their citation:\n")
-	for (package in c("ggplot2", "ggrepel", "DESeq2", "edgeR", "limma", "pheatmap", "RColorBrewer", "dplyr")){
-		suppressPackageStartupMessages(library(package, character.only = TRUE))
-		cat(paste(package, ":\n", sep=""))
-		cat(unlist(citation(package)))
-		cat('\n\n')
-		}
-	cat("Packages used by this script with no citation provided:\n")
-	for (package in c("BiocParallel", "annotables", "genefilter")) {
-		cat(paste(package, "\n", sep=""))
-		}
-	quit()
-	}
 
 
 proc_limma_voom <- function(inputdata) {
@@ -590,7 +570,6 @@ makeVennDiagram <- function(set1, set2, set3) {
 suppressPackageStartupMessages(library("ggplot2"))
 suppressPackageStartupMessages(library("ggrepel"))
 suppressPackageStartupMessages(library("parallel"))
-inputdata <- sanityCheck()
 suppressPackageStartupMessages(library("ggfortify"))
 suppressPackageStartupMessages(library("BiocParallel"))
 suppressPackageStartupMessages(library("DESeq2"))
@@ -602,6 +581,12 @@ suppressPackageStartupMessages(library("dplyr"))
 suppressPackageStartupMessages(library("genefilter")) #for rowVars
 suppressPackageStartupMessages(library("VennDiagram"))
 suppressPackageStartupMessages(library("biomaRt"))
+suppressPackageStartupMessages(library("tximport"))
+suppressPackageStartupMessages(library("readr"))
+suppressPackageStartupMessages(library("EnsDb.Hsapiens.v86"))
+suppressPackageStartupMessages(library("Rsubread"))
+
+inputdata <- sanityCheck()
 
 
 
