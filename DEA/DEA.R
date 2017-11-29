@@ -12,8 +12,7 @@ version="0.8.1"
 sanityCheck <- function() {
 	arguments <- unlist(strsplit(commandArgs(trailingOnly = TRUE)," "))
 	if (length(arguments) == 0) {usage()}
-	if (length(arguments) != 2 && ! arguments[1] %in% c("install", "citations", "version", "--version", "-v")) { usage() }
-	if (tolower(arguments[1]) == "install") { install() }
+	if (length(arguments) != 2 && ! arguments[1] %in% c("citations", "version", "--version", "-v")) { usage() }
 	if (tolower(arguments[1]) == "citations") { citations() }
 	if (tolower(arguments[1]) %in% c("version", "--version", "-v")) {
 		cat(paste("\nDEA.R version", version, "\n\n", sep=" "))
@@ -61,7 +60,7 @@ giveError <- function(message){
 	quit()
 	}
 
-usage <- function(){giveError("USAGE: DEA.R <sample info file> <annotation.gtf>.\nOther run mode options are 'install', 'citations' or 'version'")}
+usage <- function(){giveError("USAGE: DEA.R <sample info file> <annotation.gtf>.\nOther run mode options are 'citations' or 'version'")}
 
 makedesign <- function(sampleInfo) {
 	covariates <- names(sampleInfo)[which(! names(sampleInfo) %in% c("file", "condition", "sample", "subcondition", "sequencing", "strandedness"))]
