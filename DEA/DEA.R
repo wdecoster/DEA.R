@@ -1,4 +1,4 @@
-#!/home/wdecoster/anaconda3/bin/Rscript
+#!/usr/bin/Rscript
 # Script to automate differential expression analysis using the following R algorithms: DESeq2, edgeR and limma
 # Based on manuals, pieces of code found on the internet and helpful comments of colleagues
 ###Required input is:###
