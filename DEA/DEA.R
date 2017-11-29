@@ -7,7 +7,7 @@
 
 #Author: wdecoster
 #Twitter: @wouter_decoster
-version="0.8.1"
+version="0.9.0"
 
 sanityCheck <- function() {
 	arguments <- unlist(strsplit(commandArgs(trailingOnly = TRUE)," "))
@@ -308,7 +308,12 @@ proc_deseq2 <- function(inputdata) {
 
 
 exploratoryDataAnalysisDESeq <- function(dds) {
-	jpeg('DESeq2_MAplot.jpeg', width=8, height=8, units="in", res=500)
+    jpeg(
+        filename='DESeq2_MAplot.jpeg',
+        width=8,
+        height=8,
+        units="in",
+        res=500)
 	DESeq2::plotMA(dds, main="DESeq2", ylim=c(-2,2))
 	dev.off()
 	jpeg(
@@ -319,19 +324,20 @@ exploratoryDataAnalysisDESeq <- function(dds) {
 		res=500)
 	plotDispEsts(dds)
 	dev.off()
-	rld <- rlogTransformation(dds, blind=FALSE)
-	normcounts = assay(rld)
+	vst <- vst(dds, blind=FALSE)
+    normcounts = assay(vst)
 	rlddf <- data.frame(normcounts)
-	rownames(rlddf) <- names(dds)
-	rlddf <- ens2symbol(
+    rownames(rlddf) <- names(dds)
+    colnames(rlddf) <- inputdata$sampleInfo$sample
+    rlddf <- ens2symbol(
 	 	dearesult=rlddf,
-	 	columnsOfInterest=c("gene", colnames(inputdata$counts)),
-	 	colnames=c("gene", colnames(inputdata$counts), "symbol"))
-	makeHeatMap(normcounts, "DESeq2", paste(rld$condition, rld$sampleR, sep="-"))
-	makePCA(normcounts, "DESeq2", inputdata$sampleInfo)
+	 	columnsOfInterest=c("gene", colnames(rlddf)),
+	 	colnames=c("gene", colnames(rlddf), "symbol"))
+    makeHeatMap(normcounts, "DESeq2", paste(vst$condition, vst$sampleR, sep="-"))
+    makePCA(normcounts, "DESeq2", inputdata$sampleInfo)
 	write.table(
 		x=as.data.frame(rlddf),
-		file="DESeq2_rlognormalizedcounts.txt",
+		file="DESeq2_vst_normalizedcounts.txt",
 		sep="\t",
 		row.names=FALSE,
 		quote=FALSE)
@@ -345,13 +351,13 @@ exploratoryDataAnalysisDESeq <- function(dds) {
 
 getDESeqDEAbyContrast <- function(dds, group) {
 	contrast <- paste("CONvs", group, sep="")
-	res <- results(dds, parallel=TRUE, addMLE=T, contrast=c("condition", group, "CON"))
+	res <- results(dds, parallel=TRUE, contrast=c("condition", group, "CON"))
 	cat('\n\nSummary data from DESeq2 for ', contrast, ':', sep="")
 	summary(res)
 	output <- ens2symbol(
 		dearesult=res[order(res$padj),],
-		columnsOfInterest=c("gene", "log2FoldChange", "lfcMLE", "pvalue", "padj"),
-		colnames=c("gene", "logFC", "logFC-unshrunken", "pvalue", "padj", "symbol"))
+		columnsOfInterest=c("gene", "log2FoldChange", "pvalue", "padj"),
+		colnames=c("gene", "logFC", "pvalue", "padj", "symbol"))
 	write.table(
 		x=as.data.frame(output),
 		file=paste("DESeq2", contrast, "differential_expression.txt", sep="_"),
@@ -590,8 +596,8 @@ inputdata <- sanityCheck()
 
 
 
-DEG_edger <- proc_edger(inputdata)
-DEG_limma <- proc_limma_voom(inputdata)
+#DEG_edger <- proc_edger(inputdata)
+#DEG_limma <- proc_limma_voom(inputdata)
 DEG_deseq <- proc_deseq2(inputdata)
 makeVennDiagram(DEG_edger, DEG_limma, DEG_deseq)
 cat("\n\nFinished!\n\n")
