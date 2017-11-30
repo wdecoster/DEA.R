@@ -596,8 +596,8 @@ inputdata <- sanityCheck()
 
 
 
-#DEG_edger <- proc_edger(inputdata)
-#DEG_limma <- proc_limma_voom(inputdata)
+DEG_edger <- proc_edger(inputdata)
+DEG_limma <- proc_limma_voom(inputdata)
 DEG_deseq <- proc_deseq2(inputdata)
 makeVennDiagram(DEG_edger, DEG_limma, DEG_deseq)
 cat("\n\nFinished!\n\n")
