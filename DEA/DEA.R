@@ -1,5 +1,5 @@
 #!/usr/bin/Rscript
-# Script to automate differential expression analysis using the following R algorithms: DESeq2, edgeR and limma
+# Script to automate differential expression analysis using the following R algorithms: DESeq2, edgeR and limma-voom
 # Based on manuals, pieces of code found on the internet and helpful comments of colleagues
 ###Required input is:###
 #1) A sampleInfo File matching the samples containing at least the fields 'file', 'sample' and condition' with additional covariates (reference level condition == "CON")
@@ -7,22 +7,35 @@
 
 #Author: wdecoster
 #Twitter: @wouter_decoster
-version="0.9.0"
+version="0.10.0"
 
 sanityCheck <- function() {
-	arguments <- unlist(strsplit(commandArgs(trailingOnly = TRUE)," "))
-	if (length(arguments) == 0) {usage()}
-	if (length(arguments) != 2 && ! arguments[1] %in% c("citations", "version", "--version", "-v")) { usage() }
-	if (tolower(arguments[1]) == "citations") { citations() }
-	if (tolower(arguments[1]) %in% c("version", "--version", "-v")) {
+    argp <- arg_parser(description="Script to automate differential expression analysis using R algorithms DESeq2, edgeR and limma-voom")
+    argp <- add_argument(
+            parser=argp,
+            arg="sample_info",
+            help="tab separated sample info file containing at least the fields 'file', 'sample', 'condition', 'sequencing', 'strandedness'")
+    argp <- add_argument(
+            parser=argp,
+            arg="annotation",
+            help="gtf annotation file for counting using featureCounts")
+    argp <- add_argument(
+            parser=argp,
+            arg="-v",
+            help="display script version and exit")
+    argv <- parse_args(
+            parser=argp,
+            argv = commandArgs(trailingOnly = TRUE))
+
+	if (!is.na(argv$v)) {
 		cat(paste("\nDEA.R version", version, "\n\n", sep=" "))
 		quit()
 		}
 	inputdata <- list()
 	inputdata$cores <- min(detectCores() - 1, 12)
-	inputdata$annotation <- arguments[2]
+	inputdata$annotation <- argv$annotation
 	if (! file.exists(inputdata$annotation)) {giveError("FATAL: Could not find the annotation file, check if path is correct.")	}
-	inputdata$sampleInfo <- checkSampleInfo(arguments[1])
+	inputdata$sampleInfo <- checkSampleInfo(argv$sample_info)
 	inputdata$gender <- ifelse("gender" %in% names(inputdata$sampleInfo), TRUE, FALSE)
 	inputdata$PE <- ifelse(as.character(inputdata$sampleInfo$sequencing[1]) == "PE", TRUE, FALSE)
 	inputdata$strand <- switch(
@@ -571,7 +584,7 @@ makeVennDiagram <- function(set1, set2, set3) {
 	dev.off()
 	}
 
-
+suppressPackageStartupMessages(library("argparser"))
 suppressPackageStartupMessages(library("BiocParallel"))
 suppressPackageStartupMessages(library("biomaRt"))
 suppressPackageStartupMessages(library("DESeq2"))
