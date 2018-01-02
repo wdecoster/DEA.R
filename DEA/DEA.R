@@ -7,7 +7,7 @@
 
 #Author: wdecoster
 #Twitter: @wouter_decoster
-version="0.10.0"
+version="0.10.1"
 
 sanityCheck <- function() {
     argp <- arg_parser(description="Script to automate differential expression analysis using R algorithms DESeq2, edgeR and limma-voom")
@@ -209,15 +209,17 @@ countStats <- function(statdat, samples, inputdata, counts) {
 
 genderPlots <- function(genders, counts, samples) {
 	# Making orthogonal gender-specific plot based on genes from https://www.ncbi.nlm.nih.gov/pubmed/23829492
+    # coloured by expected gender (genders vector)
+    # adding labels based on sample names (samples vector)
 	maleGenes <- c('ENSG00000129824', 'ENSG00000198692', 'ENSG00000067048', 'ENSG00000012817')
 	femaleGenes <- c('ENSG00000229807')
 	if (any(maleGenes %in% rownames(counts))){
-		maleCounts <- rowSums(t(counts[rownames(counts) %in% maleGenes,]))
+		maleCounts <- (rowSums(t(counts[rownames(counts) %in% maleGenes,])) / colSums(counts)) * 1000000
 	} else {
 		maleCounts <- rep(0, length(genders))
 	}
 	if (any(femaleGenes %in% rownames(counts))){
-		femaleCounts <- counts[rownames(counts) %in% femaleGenes,]
+		femaleCounts <- (counts[rownames(counts) %in% femaleGenes,] / colSums(counts)) * 1000000
 	} else {
 		femaleCounts <- rep(0, length(genders))
 	}
@@ -229,13 +231,12 @@ genderPlots <- function(genders, counts, samples) {
 	p <- ggplot(data = data, aes(x=f, y=m, colour=gender)) +
 		geom_point() +
 		ggtitle("Reads in gender specific genes") +
-		theme(axis.title.x = element_blank(),
-			axis.ticks.x=element_blank(),
+		theme(axis.ticks.x=element_blank(),
 			panel.grid.major.x = element_blank(),
 			plot.title = element_text(hjust = 0.5),
 			legend.position="none") +
-		ylab("Raw number of reads in male specific genes") +
-		xlab("Raw number of reads in female specific gene") +
+		ylab("Normalised number of reads in male specific genes") +
+		xlab("Normalised number of reads in female specific gene") +
 		geom_text_repel(aes(label=name), size=3)
 		suppressMessages(ggsave("GenderSpecificExpression.jpeg", p))
 		}
