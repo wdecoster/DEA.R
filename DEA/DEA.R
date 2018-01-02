@@ -89,33 +89,28 @@ checkSampleInfo <- function(sampleInfoFile) {
 	if (!file.exists(sampleInfoFile)) {giveError("ARGUMENT ERROR:\nFile provided as sample info file doesn't exist or path is incorrect.") }
 	sampleInfo <- read.table(sampleInfoFile, header=T, stringsAsFactors=F)
 	names(sampleInfo) <- tolower(names(sampleInfo))
-	if (!"condition" %in% names(sampleInfo)) {
-		giveError("SAMPLEINFO ERROR:\nCould not find required field <condition> in sample info file.")}
+
+    for (required_field in c("condition", "sample", "file", "sequencing", "strandedness")){
+        if (!required_field %in% names(sampleInfo)) {
+            giveError(paste("SAMPLEINFO ERROR:\nCould not find required field", required_field, "in sample info file.")}
+    }
 	if (min(table(sampleInfo$condition)) < 3) {
 		giveError("SAMPLEINFO ERROR:\nLess than 3 replicates in smallest group from <condition>.")}
 	if (! "CON" %in% sampleInfo$condition) {
 		giveError("SAMPLEINFO ERROR:\n<CON> is a required value in the field <condition>")}
 	if (length(unique(sampleInfo$condition)) < 2) {
 		giveError("SAMPLEINFO ERROR:\nfield <condition> needs at least two different values/groups.")} #Need at least two levels
-	if (!"sample" %in% names(sampleInfo)) {
-		giveError("SAMPLEINFO ERROR:\nCould not find required field <sample> in sample info file.")}
-	if (anyDuplicated(sampleInfo$sample)) {
-		giveError("SAMPLEINFO ERROR:\nValues in field <sample> in sample info file are not unique.")} #Sample names should be unique
-	if (!"file" %in% names(sampleInfo)) {
-		giveError("SAMPLEINFO ERROR:\nCould not find required field <file> in sample info file.")}
-	if (anyDuplicated(sampleInfo$file)) {
-		giveError("SAMPLEINFO ERROR:\nValues in field <file> in sample info file are not unique.")} #File names should be unique
+    for (unique_values_required_field in c("sample", "file")) {
+        if (anyDuplicated(sampleInfo[, unique_values_required_field])) {
+    		giveError(paste("SAMPLEINFO ERROR:\nValues in field",  unique_values_required_field, "in sample info file are not unique.")}
+    }
 	for (path in sampleInfo$file) {
 		if (! file.exists(path)) {giveError(paste("Incorrect path to", path, "\nFile not found."))}}
-	if (!"sequencing" %in% names(sampleInfo)) {
-		giveError("SAMPLEINFO ERROR:\nCould not find required field <sequencing> in sample info file.")}
 	if (!length(unique(sampleInfo$sequencing)) == 1) {
 		giveError("SAMPLEINFO ERROR:\nOnly one type of sequencing (either PE or SE) is supported in field <sequencing>.")}
 	if (! unique(sampleInfo$sequencing) %in% c("PE", "SE")) {
 		giveError("SAMPLEINFO ERROR:\nInput in field <sequencing> should be either PE or SE, and only one type supported per experiment.")}
 	if (!"strandedness" %in% names(sampleInfo)) {
-		giveError("SAMPLEINFO ERROR:\nCould not find required field <strandedness> in sample info file.")}
-	if (!length(unique(sampleInfo$strandedness)) == 1) {
 		giveError("SAMPLEINFO ERROR:\nOnly one type of strandedness (either unstranded, stranded or reverse) is supported in field <stranded>.")}
 	if (! unique(sampleInfo$strandedness) %in% c("unstranded", "stranded", "reverse")) {
 		giveError("SAMPLEINFO ERROR:\nInput in field <strandedness> should be either unstranded, stranded or reverse, and only one type supported per experiment.")}
