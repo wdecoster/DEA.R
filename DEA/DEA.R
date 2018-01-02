@@ -9,7 +9,7 @@
 #Twitter: @wouter_decoster
 version="0.10.1"
 
-sanityCheck <- function() {
+get_args <- function() {
     argp <- arg_parser(description="Script to automate differential expression analysis using R algorithms DESeq2, edgeR and limma-voom")
     argp <- add_argument(
             parser=argp,
@@ -31,11 +31,15 @@ sanityCheck <- function() {
 		cat(paste("\nDEA.R version", version, "\n\n", sep=" "))
 		quit()
 		}
+    return(argv)
+    }
+
+sanityCheck <- function(sample_info, annotation) {
 	inputdata <- list()
 	inputdata$cores <- min(detectCores() - 1, 12)
-	inputdata$annotation <- argv$annotation
+	inputdata$annotation <- annotation
 	if (! file.exists(inputdata$annotation)) {giveError("FATAL: Could not find the annotation file, check if path is correct.")	}
-	inputdata$sampleInfo <- checkSampleInfo(argv$sample_info)
+	inputdata$sampleInfo <- checkSampleInfo(sample_info)
 	inputdata$gender <- ifelse("gender" %in% names(inputdata$sampleInfo), TRUE, FALSE)
 	inputdata$PE <- ifelse(as.character(inputdata$sampleInfo$sequencing[1]) == "PE", TRUE, FALSE)
 	inputdata$strand <- switch(
@@ -182,7 +186,9 @@ countStats <- function(statdat, samples, inputdata, counts) {
 						statdat[, 2:ncol(statdat)] / rep(as.numeric(statdat[1,2:ncol(statdat)] + statdat[2,2:ncol(statdat)] + statdat[4,2:ncol(statdat)]), each=11)
 						)
 	completeStats <- rbind(statdat, relativeStats)
-	p <- ggplot(data=data.frame(Unassigned_NoFeatures_relative = as.numeric(relativeStats[4,2:ncol(relativeStats)])), aes(x=1, y=Unassigned_NoFeatures_relative)) +
+	p <- ggplot(
+            data=data.frame(Unassigned_NoFeatures_relative = as.numeric(relativeStats[4,2:ncol(relativeStats)])),
+            aes(x=1, y=Unassigned_NoFeatures_relative)) +
 		geom_violin() +
 		geom_dotplot(binaxis='y', stackdir='center', position="dodge") +
 		ggtitle("Fraction of reads not mapping to a feature") +
@@ -605,13 +611,12 @@ suppressPackageStartupMessages(library("Rsubread"))
 suppressPackageStartupMessages(library("tximport"))
 suppressPackageStartupMessages(library("VennDiagram"))
 
-inputdata <- sanityCheck()
-
-
-
+arg <- get_args()
+inputdata <- sanityCheck(arg$sample_info, arg$annotation)
 
 DEG_edger <- proc_edger(inputdata)
 DEG_limma <- proc_limma_voom(inputdata)
 DEG_deseq <- proc_deseq2(inputdata)
+
 makeVennDiagram(DEG_edger, DEG_limma, DEG_deseq)
 cat("\n\nFinished!\n\n")
