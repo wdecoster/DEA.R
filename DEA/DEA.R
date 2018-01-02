@@ -90,9 +90,9 @@ checkSampleInfo <- function(sampleInfoFile) {
 	sampleInfo <- read.table(sampleInfoFile, header=T, stringsAsFactors=F)
 	names(sampleInfo) <- tolower(names(sampleInfo))
 
-    for (required_field in c("condition", "sample", "file", "sequencing", "strandedness")){
+    for (required_field in c("condition", "sample", "file", "sequencing", "strandedness")) {
         if (!required_field %in% names(sampleInfo)) {
-            giveError(paste("SAMPLEINFO ERROR:\nCould not find required field", required_field, "in sample info file.")}
+            giveError(paste("SAMPLEINFO ERROR:\nCould not find required field", required_field, "in sample info file."))}
     }
 	if (min(table(sampleInfo$condition)) < 3) {
 		giveError("SAMPLEINFO ERROR:\nLess than 3 replicates in smallest group from <condition>.")}
@@ -102,7 +102,7 @@ checkSampleInfo <- function(sampleInfoFile) {
 		giveError("SAMPLEINFO ERROR:\nfield <condition> needs at least two different values/groups.")} #Need at least two levels
     for (unique_values_required_field in c("sample", "file")) {
         if (anyDuplicated(sampleInfo[, unique_values_required_field])) {
-    		giveError(paste("SAMPLEINFO ERROR:\nValues in field",  unique_values_required_field, "in sample info file are not unique.")}
+    		giveError(paste("SAMPLEINFO ERROR:\nValues in field",  unique_values_required_field, "in sample info file are not unique."))}
     }
 	for (path in sampleInfo$file) {
 		if (! file.exists(path)) {giveError(paste("Incorrect path to", path, "\nFile not found."))}}
