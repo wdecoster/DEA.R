@@ -404,7 +404,6 @@ getDESeqDEAbyContrast <- function(dds, group) {
 
 
 proc_edger <- function(inputdata) {
-	design <- model.matrix(inputdata$design, data=inputdata$sampleInfo)
 	if (inputdata$source == "bam") {
 		d <- DGEList(
 			counts=data.matrix(inputdata$counts),
@@ -419,11 +418,21 @@ proc_edger <- function(inputdata) {
 	}
 	d$samples$group <- relevel(d$samples$group, ref="CON")
 	dlim <- d[rowSums(cpm(d)>0.5) >= min(table(inputdata$sampleInfo$condition)) - 1,]
-	disp <- estimateDisp(calcNormFactors(dlim), design) #Common dispersion and tagwise dispersions in one run
+    design <- model.matrix(inputdata$design, data=inputdata$sampleInfo)
+	disp <- estimateDisp(calcNormFactors(dlim), design)
 	rownames(design) <- colnames(disp)
+    exploratoryDataAnalysisedgeR(disp)
 	fit <- glmFit(disp,design) #Likelihood ratio tests
 	deg <- glmLRT(fit, coef=ncol(fit$design))
-	exploratoryDataAnalysisedgeR(deg, disp)
+    jpeg(
+        filename='edgeR_MAplot.jpeg',
+        width=8,
+        height=8,
+        units="in",
+        res=500)
+    plotSmear(deg, de.tags=rownames(disp)[as.logical(decideTestsDGE(deg))])
+    abline(h=c(-1, 1), col="blue")
+    dev.off()
 	output <- ens2symbol(
 		dearesult=topTags(deg, n=nrow(deg$counts))$table,
 		columnsOfInterest=c('gene', 'logFC', 'PValue', 'FDR'),
@@ -451,16 +460,7 @@ proc_edger <- function(inputdata) {
 	}
 
 
-exploratoryDataAnalysisedgeR <- function(deg, disp){
-	jpeg(
-		filename='edgeR_MAplot.jpeg',
-		width=8,
-		height=8,
-		units="in",
-		res=500)
-	plotSmear(deg, de.tags=rownames(disp)[as.logical(decideTestsDGE(deg))])
-	abline(h=c(-1, 1), col="blue")
-	dev.off()
+exploratoryDataAnalysisedgeR <- function(disp){
 	jpeg(
 		filename='edgeR_dispersionPlot.jpeg',
 		width=8,
