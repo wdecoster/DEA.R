@@ -145,7 +145,7 @@ getCountsFromSalmon <- function(inputdata) {
             file = "Tximport.log")
         )
     save(counts, file=file.path(inputdata$outdir, "Salmon_Quantification.RData"))
-    if (inputdata$gender) {    genderPlots(inputdata$sampleInfo$gender, counts$A$counts, inputdata$sampleInfo$sample) }
+    if (inputdata$gender) {    genderPlots(inputdata, counts$A$counts) }
     return(counts)
     }
 
@@ -211,14 +211,16 @@ countStats <- function(statdat, samples, inputdata, counts) {
         quote=F,
         sep="\t",
         row.names=F)
-    if (inputdata$gender) {    genderPlots(inputdata$sampleInfo$gender, counts, inputdata$sampleInfo$sample) }
+    if (inputdata$gender) {    genderPlots(inputdata, counts) }
     }
 
 
-genderPlots <- function(genders, counts, samples) {
+genderPlots <- function(inputdata, counts) {
     # Making orthogonal gender-specific plot based on genes from https://www.ncbi.nlm.nih.gov/pubmed/23829492
     # coloured by expected gender (genders vector)
     # adding labels based on sample names (samples vector)
+    genders = inputdata$sampleInfo$gender
+    samples = inputdata$sampleInfo$sample
     maleGenes <- c('ENSG00000129824', 'ENSG00000198692', 'ENSG00000067048', 'ENSG00000012817')
     femaleGenes <- c('ENSG00000229807')
     if (any(maleGenes %in% rownames(counts))){
