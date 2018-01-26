@@ -55,15 +55,15 @@ sanityCheck <- function(sample_info, annotation, outputdir) {
         'stranded' = 1,
         'reverse' = 2)
     inputdata$design <- makedesign(inputdata$sampleInfo)
-    if (file.exists("FeatureCounts_RawCounts.RData")){
+    if (file.exists(file.path(inputdata$outdir, "FeatureCounts_RawCounts.RData"))) {
         load("FeatureCounts_RawCounts.RData")
         cat("Found RData countsfile from FeatureCounts, using this one without perform counting again.\n")
         if (! all(colnames(counts) == inputdata$sampleInfo$sample)) {
             giveError("ERROR:\nSaved file <FeatureCounts_RawCounts.RData> doesn't match with sample info file.")}
         inputdata$counts <- counts
         inputdata$source <- "bam"
-    } else if (file.exists("Salmon_Quantification.RData")){
-        load("Salmon_Quantification.RData")
+    } else if (file.exists(file.path(inputdata$outdir, "Salmon_Quantification.RData"))) {
+        load(file.path(inputdata$outdir, "Salmon_Quantification.RData"))
         cat("Found RData quantification file from Salmon, using this one without perform counting again.\n")
         if (! all(colnames(counts) == inputdata$sampleInfo$sample)) {
             giveError("ERROR:\nSaved file <Salmon_Quantification.RData> doesn't match with sample info file.")}
