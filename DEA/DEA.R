@@ -7,7 +7,7 @@
 
 #Author: wdecoster
 #Twitter: @wouter_decoster
-version="0.11.0"
+version="0.11.1"
 
 get_args <- function() {
     argp <- arg_parser(description="Script to automate differential expression analysis using R algorithms DESeq2, edgeR and limma-voom")
