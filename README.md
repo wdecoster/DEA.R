@@ -1,5 +1,7 @@
 # DEA.R
 
+## DISCLAIMER: This project is currently not actively maintained, but I welcome all contributions
+
 [![Twitter URL](https://img.shields.io/twitter/url/https/twitter.com/wouter_decoster.svg?style=social&label=Follow%20%40wouter_decoster)](https://twitter.com/wouter_decoster)
 
 ## Purpose
